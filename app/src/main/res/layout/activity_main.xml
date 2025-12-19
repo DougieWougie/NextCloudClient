@@ -22,59 +22,103 @@
 
     </com.google.android.material.appbar.AppBarLayout>
 
-    <androidx.core.widget.NestedScrollView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:orientation="vertical"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/spacing_medium"
+            app:cardElevation="@dimen/card_elevation"
+            app:cardCornerRadius="@dimen/card_corner_radius">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/spacing_medium">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Sync Status"
+                    android:textSize="@dimen/text_size_large"
+                    android:textStyle="bold"/>
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/textLastSync"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/never_synced"
+                    android:textSize="@dimen/text_size_medium"
+                    android:layout_marginTop="@dimen/spacing_small"/>
+
+                <com.google.android.material.progressindicator.LinearProgressIndicator
+                    android:id="@+id/progressSync"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_small"
+                    android:visibility="gone"
+                    android:indeterminate="true"/>
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="@dimen/spacing_medium">
-
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/spacing_medium"
-                app:cardElevation="@dimen/card_elevation"
-                app:cardCornerRadius="@dimen/card_corner_radius">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="@dimen/spacing_medium">
-
-                    <com.google.android.material.textview.MaterialTextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Sync Status"
-                        android:textSize="@dimen/text_size_large"
-                        android:textStyle="bold"/>
-
-                    <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/textLastSync"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/never_synced"
-                        android:textSize="@dimen/text_size_medium"
-                        android:layout_marginTop="@dimen/spacing_small"/>
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="@dimen/spacing_medium"
+            android:paddingEnd="@dimen/spacing_medium"
+            android:paddingTop="@dimen/spacing_small"
+            android:paddingBottom="@dimen/spacing_small">
 
             <com.google.android.material.textview.MaterialTextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Sync Folders"
+                android:textSize="@dimen/text_size_large"
+                android:textStyle="bold"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonAddFolder"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Welcome to Nextcloud Sync!\n\nYour files are now syncing automatically in the background.\n\nTap the sync button to manually sync now."
-                android:textSize="@dimen/text_size_medium"
-                android:layout_marginTop="@dimen/spacing_medium"/>
+                android:text="Add Folder"
+                style="@style/Widget.Material3.Button.OutlinedButton"/>
 
         </LinearLayout>
 
-    </androidx.core.widget.NestedScrollView>
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerFolders"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone"/>
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/textEmptyState"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="No folders configured.\nTap 'Add Folder' to get started."
+                android:textSize="@dimen/text_size_medium"
+                android:gravity="center"
+                android:visibility="visible"/>
+
+        </FrameLayout>
+
+    </LinearLayout>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabSync"

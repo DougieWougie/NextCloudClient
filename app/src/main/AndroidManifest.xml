@@ -61,6 +61,16 @@
             android:exported="false"
             android:theme="@style/Theme.NextcloudSync" />
 
+        <activity
+            android:name=".views.activities.AddFolderActivity"
+            android:exported="false"
+            android:theme="@style/Theme.NextcloudSync" />
+
+        <activity
+            android:name=".views.activities.FileBrowserActivity"
+            android:exported="false"
+            android:theme="@style/Theme.NextcloudSync" />
+
         <!-- FileProvider for sharing files -->
         <provider
             android:name="androidx.core.content.FileProvider"
