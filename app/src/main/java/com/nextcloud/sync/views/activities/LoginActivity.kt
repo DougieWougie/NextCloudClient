@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 class LoginActivity : AppCompatActivity() {
     private lateinit var binding: ActivityLoginBinding
     private lateinit var loginController: LoginController
+    private lateinit var accountRepository: AccountRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -23,12 +24,25 @@ class LoginActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         setupController()
+        checkExistingAccount()
         setupViews()
+    }
+
+    private fun checkExistingAccount() {
+        lifecycleScope.launch {
+            val activeAccount = accountRepository.getActiveAccount()
+            if (activeAccount != null) {
+                // Account exists, navigate to main activity
+                val intent = Intent(this@LoginActivity, MainActivity::class.java)
+                startActivity(intent)
+                finish()
+            }
+        }
     }
 
     private fun setupController() {
         val db = AppDatabase.getInstance(this)
-        val accountRepository = AccountRepository(db.accountDao())
+        accountRepository = AccountRepository(db.accountDao())
 
         loginController = LoginController(accountRepository)
     }
