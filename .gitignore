@@ -101,5 +101,8 @@ secrets.properties
 # Room schema export
 app/schemas/
 
+# Planning files
+PLAN.md
+
 # Mac files
 .DS_Store
