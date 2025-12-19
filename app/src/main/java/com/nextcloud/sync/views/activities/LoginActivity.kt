@@ -35,60 +35,31 @@ class LoginActivity : AppCompatActivity() {
 
     private fun setupViews() {
         binding.buttonLogin.setOnClickListener {
-            performLogin()
+            performWebLogin()
         }
     }
 
-    private fun performLogin() {
-        val serverUrl = binding.editServerUrl.text.toString()
-        val username = binding.editUsername.text.toString()
-        val password = binding.editPassword.text.toString()
+    private fun performWebLogin() {
+        val serverUrl = binding.editServerUrl.text.toString().trim()
 
-        binding.progressBar.visibility = View.VISIBLE
-        binding.buttonLogin.isEnabled = false
-
-        lifecycleScope.launch {
-            loginController.login(serverUrl, username, password, object : LoginController.LoginCallback {
-                override fun onLoginSuccess(requiresTwoFactor: Boolean, accountId: Long) {
-                    runOnUiThread {
-                        binding.progressBar.visibility = View.GONE
-
-                        if (requiresTwoFactor) {
-                            // Navigate to 2FA activity
-                            val intent = Intent(this@LoginActivity, TwoFactorActivity::class.java)
-                            intent.putExtra("account_id", accountId)
-                            startActivity(intent)
-                            finish()
-                        } else {
-                            // Navigate to main activity
-                            startActivity(Intent(this@LoginActivity, MainActivity::class.java))
-                            finish()
-                        }
-                    }
-                }
-
-                override fun onLoginError(error: String) {
-                    runOnUiThread {
-                        binding.progressBar.visibility = View.GONE
-                        binding.buttonLogin.isEnabled = true
-                        showError(error)
-                    }
-                }
-
-                override fun onValidationError(field: String, error: String) {
-                    runOnUiThread {
-                        binding.progressBar.visibility = View.GONE
-                        binding.buttonLogin.isEnabled = true
-
-                        when (field) {
-                            "server_url" -> binding.textInputLayoutServerUrl.error = error
-                            "username" -> binding.textInputLayoutUsername.error = error
-                            "password" -> binding.textInputLayoutPassword.error = error
-                        }
-                    }
-                }
-            })
+        // Basic validation
+        if (serverUrl.isEmpty()) {
+            binding.textInputLayoutServerUrl.error = "Server URL is required"
+            return
         }
+
+        if (!serverUrl.startsWith("http://") && !serverUrl.startsWith("https://")) {
+            binding.textInputLayoutServerUrl.error = "URL must start with http:// or https://"
+            return
+        }
+
+        // Clear errors
+        binding.textInputLayoutServerUrl.error = null
+
+        // Navigate to web login activity
+        val intent = Intent(this, WebLoginActivity::class.java)
+        intent.putExtra("server_url", serverUrl.trimEnd('/'))
+        startActivity(intent)
     }
 
     private fun showError(message: String) {

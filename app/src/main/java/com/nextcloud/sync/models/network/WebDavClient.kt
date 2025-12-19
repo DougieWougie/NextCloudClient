@@ -27,19 +27,84 @@ class WebDavClient(
     private val webdavBaseUrl: String
         get() = "$serverUrl/remote.php/dav/files/$username"
 
+    private val httpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build()
+    }
+
     suspend fun testConnection(): ConnectionResult = withContext(Dispatchers.IO) {
         try {
-            val testUrl = webdavBaseUrl
-            sardine.list(testUrl)
-            ConnectionResult.Success
-        } catch (e: Exception) {
-            when {
-                e.message?.contains("401") == true -> {
-                    // Check if 2FA is required
-                    ConnectionResult.RequiresTwoFactor
-                }
-                else -> ConnectionResult.Error("Connection failed: ${e.message}")
+            // Try the main status endpoint first to validate server
+            val statusUrl = "$serverUrl/status.php"
+            val statusRequest = Request.Builder()
+                .url(statusUrl)
+                .get()
+                .build()
+
+            val statusResponse = httpClient.newCall(statusRequest).execute()
+            if (!statusResponse.isSuccessful) {
+                statusResponse.close()
+                return@withContext ConnectionResult.Error("Cannot reach Nextcloud server. Check the server URL.")
             }
+            statusResponse.close()
+
+            // Now test WebDAV authentication
+            // Try new path first: /remote.php/dav/files/username
+            var testUrl = webdavBaseUrl
+            var request = Request.Builder()
+                .url(testUrl)
+                .method("PROPFIND", null)
+                .header("Authorization", Credentials.basic(username, password))
+                .header("Depth", "0")
+                .build()
+
+            var response = httpClient.newCall(request).execute()
+
+            // If 404, try legacy WebDAV path
+            if (response.code == 404) {
+                response.close()
+                testUrl = "$serverUrl/remote.php/webdav"
+                request = Request.Builder()
+                    .url(testUrl)
+                    .method("PROPFIND", null)
+                    .header("Authorization", Credentials.basic(username, password))
+                    .header("Depth", "0")
+                    .build()
+
+                response = httpClient.newCall(request).execute()
+            }
+
+            when {
+                response.isSuccessful -> {
+                    response.close()
+                    ConnectionResult.Success
+                }
+                response.code == 401 -> {
+                    // Check for 2FA header
+                    val requires2FA = response.headers["X-Nextcloud-2FA-Required"] != null
+                    response.close()
+
+                    if (requires2FA) {
+                        ConnectionResult.RequiresTwoFactor
+                    } else {
+                        ConnectionResult.Error("Invalid username or password")
+                    }
+                }
+                response.code == 404 -> {
+                    response.close()
+                    ConnectionResult.Error("WebDAV endpoint not found. Please check your server URL and ensure WebDAV is enabled.")
+                }
+                else -> {
+                    val errorMsg = "Connection failed: HTTP ${response.code} - ${response.message}"
+                    response.close()
+                    ConnectionResult.Error(errorMsg)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("WebDavClient", "Connection test failed", e)
+            ConnectionResult.Error("Connection failed: ${e.message}")
         }
     }
 
