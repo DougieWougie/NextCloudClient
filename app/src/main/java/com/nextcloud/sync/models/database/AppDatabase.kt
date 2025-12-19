@@ -14,8 +14,8 @@ import com.nextcloud.sync.models.database.entities.ConflictEntity
 import com.nextcloud.sync.models.database.entities.FileEntity
 import com.nextcloud.sync.models.database.entities.FolderEntity
 import com.nextcloud.sync.utils.EncryptionUtil
-import net.sqlcipher.database.SQLiteDatabase
-import net.sqlcipher.database.SupportFactory
+// import net.sqlcipher.database.SQLiteDatabase
+// import net.sqlcipher.database.SupportFactory
 
 @Database(
     entities = [
@@ -40,15 +40,16 @@ abstract class AppDatabase : RoomDatabase() {
 
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
-                val passphrase = EncryptionUtil.getDatabaseKey(context)
-                val factory = SupportFactory(SQLiteDatabase.getBytes(passphrase))
+                // TODO: Add SQLCipher encryption back once dependency is resolved
+                // val passphrase = EncryptionUtil.getDatabaseKey(context)
+                // val factory = SupportFactory(SQLiteDatabase.getBytes(passphrase))
 
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "nextcloud_sync.db"
                 )
-                    .openHelperFactory(factory)
+                    // .openHelperFactory(factory)
                     .fallbackToDestructiveMigration()
                     .build()
 

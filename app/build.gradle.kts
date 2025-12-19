@@ -58,12 +58,12 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.constraintlayout)
 
-    // Room + SQLCipher
+    // Room (without SQLCipher for now)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
-    implementation(libs.sqlcipher)
-    implementation(libs.androidx.sqlite)
+    // implementation(libs.sqlcipher)
+    // implementation(libs.androidx.sqlite)
 
     // WorkManager
     implementation(libs.androidx.work.runtime)
