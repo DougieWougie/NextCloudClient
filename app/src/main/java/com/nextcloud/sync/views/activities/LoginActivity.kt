@@ -48,9 +48,11 @@ class LoginActivity : AppCompatActivity() {
             return
         }
 
-        if (!serverUrl.startsWith("http://") && !serverUrl.startsWith("https://")) {
-            binding.textInputLayoutServerUrl.error = "URL must start with http:// or https://"
-            return
+        // Add https:// prefix if no protocol is specified
+        val normalizedUrl = if (!serverUrl.startsWith("http://") && !serverUrl.startsWith("https://")) {
+            "https://$serverUrl"
+        } else {
+            serverUrl
         }
 
         // Clear errors
@@ -58,7 +60,7 @@ class LoginActivity : AppCompatActivity() {
 
         // Navigate to web login activity
         val intent = Intent(this, WebLoginActivity::class.java)
-        intent.putExtra("server_url", serverUrl.trimEnd('/'))
+        intent.putExtra("server_url", normalizedUrl.trimEnd('/'))
         startActivity(intent)
     }
 
