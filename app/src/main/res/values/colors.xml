@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="nextcloud_blue">#0082C9</color>
+    <color name="nextcloud_blue_dark">#006699</color>
+    <color name="nextcloud_blue_light">#33A3D9</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="warning">#FF9800</color>
+    <color name="error">#F44336</color>
+    <color name="success">#4CAF50</color>
+    <color name="gray_light">#F5F5F5</color>
+    <color name="gray_medium">#BDBDBD</color>
+    <color name="gray_dark">#757575</color>
+</resources>

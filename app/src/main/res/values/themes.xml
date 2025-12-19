@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.NextcloudSync" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Primary brand color -->
+        <item name="colorPrimary">@color/nextcloud_blue</item>
+        <item name="colorPrimaryVariant">@color/nextcloud_blue_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+
+        <!-- Secondary brand color -->
+        <item name="colorSecondary">@color/nextcloud_blue_light</item>
+        <item name="colorSecondaryVariant">@color/nextcloud_blue</item>
+        <item name="colorOnSecondary">@color/black</item>
+
+        <!-- Status bar color -->
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+
+        <!-- Material 3 configuration -->
+        <item name="colorPrimaryContainer">@color/nextcloud_blue_light</item>
+        <item name="colorOnPrimaryContainer">@color/nextcloud_blue_dark</item>
+    </style>
+</resources>
