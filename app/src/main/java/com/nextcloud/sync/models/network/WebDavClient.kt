@@ -30,6 +30,32 @@ class WebDavClient(
     private val webdavBaseUrl: String
         get() = "$serverUrl/remote.php/dav/files/$username"
 
+    /**
+     * Extract the user-relative path from a full WebDAV path
+     * Strips the WebDAV base URL to return just the file/folder path relative to the user's root
+     */
+    private fun extractUserRelativePath(fullPath: String): String {
+        // fullPath example: /remote.php/dav/files/username/folder/file.txt
+        // Should return: /folder/file.txt
+
+        // Try to remove the new WebDAV path format first
+        val newFormatPrefix = "/remote.php/dav/files/$username"
+        if (fullPath.startsWith(newFormatPrefix)) {
+            val relativePath = fullPath.removePrefix(newFormatPrefix)
+            return if (relativePath.isEmpty()) "/" else relativePath
+        }
+
+        // Try legacy WebDAV format
+        val legacyPrefix = "/remote.php/webdav"
+        if (fullPath.startsWith(legacyPrefix)) {
+            val relativePath = fullPath.removePrefix(legacyPrefix)
+            return if (relativePath.isEmpty()) "/" else relativePath
+        }
+
+        // If no WebDAV prefix found, return as-is
+        return fullPath
+    }
+
     private val httpClient: OkHttpClient by lazy {
         CertificatePinningHelper.createPinnedClient(
             context = context,
@@ -125,7 +151,7 @@ class WebDavClient(
                 .filter { !it.isDirectory }
                 .map { resource ->
                     DavResource(
-                        path = resource.path,
+                        path = extractUserRelativePath(resource.path),
                         name = resource.name ?: "",
                         contentLength = resource.contentLength ?: 0L,
                         modified = resource.modified ?: Date(),
@@ -151,7 +177,7 @@ class WebDavClient(
                 .filter { it.isDirectory && it.path != fullPath }
                 .map { resource ->
                     DavResource(
-                        path = resource.path,
+                        path = extractUserRelativePath(resource.path),
                         name = resource.name ?: "",
                         contentLength = 0L,
                         modified = resource.modified ?: Date(),
@@ -166,12 +192,16 @@ class WebDavClient(
     }
 
     private fun buildFullPath(remotePath: String): String {
-        // If remotePath already contains the webdav base path, use it with serverUrl only
-        // This happens when paths come from sardine.list() which returns absolute paths
+        // remotePath should be a user-relative path (e.g., /folder/file.txt)
+        // We need to prepend the WebDAV base URL to make it a full WebDAV path
+
+        // For backwards compatibility, check if path already contains WebDAV structure
+        // (this should not happen with the new cleaned paths from listFiles/listFolders)
         return if (remotePath.contains("/remote.php/dav/files/") || remotePath.contains("/remote.php/webdav/")) {
+            SafeLogger.w("WebDavClient", "Path already contains WebDAV structure: $remotePath")
             "$serverUrl$remotePath"
         } else {
-            // Otherwise, build the full path with webdavBaseUrl
+            // Build the full path with webdavBaseUrl
             if (remotePath.startsWith("/")) {
                 "$webdavBaseUrl$remotePath"
             } else {
