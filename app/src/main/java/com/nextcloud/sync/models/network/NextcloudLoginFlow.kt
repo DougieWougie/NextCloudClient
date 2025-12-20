@@ -1,6 +1,6 @@
 package com.nextcloud.sync.models.network
 
-import android.util.Log
+import com.nextcloud.sync.utils.SafeLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -62,7 +62,7 @@ class NextcloudLoginFlow(private val serverUrl: String) {
                 pollEndpoint = pollEndpoint
             )
         } catch (e: Exception) {
-            Log.e("NextcloudLoginFlow", "Failed to init login flow", e)
+            SafeLogger.e("NextcloudLoginFlow", "Failed to init login flow", e)
             LoginFlowInitResult.Error("Failed to initialize login: ${e.message}")
         }
     }
@@ -80,7 +80,7 @@ class NextcloudLoginFlow(private val serverUrl: String) {
             delay(3000)
 
             repeat(maxAttempts) { attempt ->
-                Log.d("NextcloudLoginFlow", "Polling attempt ${attempt + 1}/$maxAttempts")
+                SafeLogger.d("NextcloudLoginFlow", "Polling attempt ${attempt + 1}/$maxAttempts")
 
                 val mediaType = "application/json; charset=utf-8".toMediaType()
                 val request = Request.Builder()
@@ -90,7 +90,7 @@ class NextcloudLoginFlow(private val serverUrl: String) {
 
                 val response = client.newCall(request).execute()
 
-                Log.d("NextcloudLoginFlow", "Poll response: ${response.code}")
+                SafeLogger.d("NextcloudLoginFlow", "Poll response: ${response.code}")
 
                 when (response.code) {
                     200 -> {
@@ -98,7 +98,7 @@ class NextcloudLoginFlow(private val serverUrl: String) {
                         val responseBody = response.body?.string() ?: ""
                         response.close()
 
-                        Log.d("NextcloudLoginFlow", "Login successful!")
+                        SafeLogger.d("NextcloudLoginFlow", "Login successful!")
 
                         val json = JSONObject(responseBody)
                         val serverUrl = json.getString("server")
@@ -116,7 +116,7 @@ class NextcloudLoginFlow(private val serverUrl: String) {
                     404 -> {
                         // Not ready yet, continue polling
                         response.close()
-                        Log.d("NextcloudLoginFlow", "Not ready, waiting...")
+                        SafeLogger.d("NextcloudLoginFlow", "Not ready, waiting...")
                         delay(5000) // Wait 5 seconds before next poll
                     }
                     else -> {
@@ -124,7 +124,7 @@ class NextcloudLoginFlow(private val serverUrl: String) {
                         val responseBody = response.body?.string() ?: ""
                         response.close()
 
-                        Log.w("NextcloudLoginFlow", "Poll returned ${response.code}: $responseBody")
+                        SafeLogger.w("NextcloudLoginFlow", "Poll returned ${response.code}: $responseBody")
 
                         if (response.code >= 500) {
                             // Server error, retry
@@ -140,7 +140,7 @@ class NextcloudLoginFlow(private val serverUrl: String) {
             // Timeout
             LoginFlowPollResult.Timeout
         } catch (e: Exception) {
-            Log.e("NextcloudLoginFlow", "Polling failed", e)
+            SafeLogger.e("NextcloudLoginFlow", "Polling failed", e)
             LoginFlowPollResult.Error("Polling failed: ${e.message}")
         }
     }

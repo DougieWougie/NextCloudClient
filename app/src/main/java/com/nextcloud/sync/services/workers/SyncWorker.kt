@@ -1,7 +1,7 @@
 package com.nextcloud.sync.services.workers
 
 import android.content.Context
-import android.util.Log
+import com.nextcloud.sync.utils.SafeLogger
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
@@ -40,23 +40,23 @@ class SyncWorker(
 
     override suspend fun doWork(): Result {
         try {
-            Log.d("SyncWorker", "Starting sync...")
+            SafeLogger.d("SyncWorker", "Starting sync...")
 
             // Check if WiFi-only constraint needs to be enforced
             val isWifiRequired = inputData.getBoolean("wifi_only", false)
             if (isWifiRequired && !NetworkUtil.isWifiConnected(applicationContext)) {
-                Log.d("SyncWorker", "WiFi required but not connected, retrying later")
+                SafeLogger.d("SyncWorker", "WiFi required but not connected, retrying later")
                 return Result.retry()
             }
 
             // Get active account
             val account = accountRepository.getActiveAccount()
             if (account == null) {
-                Log.e("SyncWorker", "No active account found")
+                SafeLogger.e("SyncWorker", "No active account found")
                 return Result.failure()
             }
 
-            Log.d("SyncWorker", "Syncing for account: ${account.username}")
+            SafeLogger.d("SyncWorker", "Syncing for account: ${account.username}")
 
             // Create WebDAV client
             val password = EncryptionUtil.decryptPassword(account.passwordEncrypted)
@@ -66,10 +66,10 @@ class SyncWorker(
             // Get sync-enabled folders
             val folders = folderRepository.getSyncEnabledFolders()
 
-            Log.d("SyncWorker", "Found ${folders.size} folders to sync")
+            SafeLogger.d("SyncWorker", "Found ${folders.size} folders to sync")
 
             if (folders.isEmpty()) {
-                Log.d("SyncWorker", "No folders to sync")
+                SafeLogger.d("SyncWorker", "No folders to sync")
                 return Result.success()
             }
 
@@ -87,15 +87,15 @@ class SyncWorker(
             var totalConflicts = 0
 
             folders.forEach { folder ->
-                Log.d("SyncWorker", "Syncing folder: ${folder.localPath} -> ${folder.remotePath}")
+                SafeLogger.d("SyncWorker", "Syncing folder: ${folder.localPath} -> ${folder.remotePath}")
                 try {
                     val stats = syncFolder(syncController, folder.id)
                     totalUploaded += stats.uploaded
                     totalDownloaded += stats.downloaded
                     totalConflicts += stats.conflicts
-                    Log.d("SyncWorker", "Folder synced - Up: ${stats.uploaded}, Down: ${stats.downloaded}, Conflicts: ${stats.conflicts}")
+                    SafeLogger.d("SyncWorker", "Folder synced - Up: ${stats.uploaded}, Down: ${stats.downloaded}, Conflicts: ${stats.conflicts}")
                 } catch (e: Exception) {
-                    Log.e("SyncWorker", "Failed to sync folder ${folder.id}", e)
+                    SafeLogger.e("SyncWorker", "Failed to sync folder ${folder.id}", e)
                     // Continue with other folders even if one fails
                 }
             }
@@ -103,7 +103,7 @@ class SyncWorker(
             // Update last sync time
             accountRepository.updateLastSync(account.id, System.currentTimeMillis())
 
-            Log.d("SyncWorker", "Sync completed - Total Up: $totalUploaded, Total Down: $totalDownloaded, Total Conflicts: $totalConflicts")
+            SafeLogger.d("SyncWorker", "Sync completed - Total Up: $totalUploaded, Total Down: $totalDownloaded, Total Conflicts: $totalConflicts")
 
             // Show completion notification
             notificationUtil.showSyncCompleteNotification(
@@ -117,7 +117,7 @@ class SyncWorker(
 
             return Result.success()
         } catch (e: Exception) {
-            Log.e("SyncWorker", "Sync failed with exception", e)
+            SafeLogger.e("SyncWorker", "Sync failed with exception", e)
             notificationUtil.showSyncErrorNotification(e.message ?: "Unknown error")
             return Result.retry()
         }
@@ -143,7 +143,7 @@ class SyncWorker(
             }
 
             override fun onSyncError(error: String) {
-                Log.e("SyncWorker", "Sync error: $error")
+                SafeLogger.e("SyncWorker", "Sync error: $error")
             }
 
             override fun onConflictDetected(conflictId: Long) {

@@ -1,6 +1,6 @@
 package com.nextcloud.sync.models.network
 
-import android.util.Log
+import com.nextcloud.sync.utils.SafeLogger
 import com.thegrizzlylabs.sardineandroid.Sardine
 import com.thegrizzlylabs.sardineandroid.impl.OkHttpSardine
 import kotlinx.coroutines.Dispatchers
@@ -103,7 +103,7 @@ class WebDavClient(
                 }
             }
         } catch (e: Exception) {
-            Log.e("WebDavClient", "Connection test failed", e)
+            SafeLogger.e("WebDavClient", "Connection test failed", e)
             ConnectionResult.Error("Connection failed: ${e.message}")
         }
     }
@@ -129,7 +129,7 @@ class WebDavClient(
                     )
                 }
         } catch (e: Exception) {
-            Log.e("WebDavClient", "Failed to list files", e)
+            SafeLogger.e("WebDavClient", "Failed to list files", e)
             emptyList()
         }
     }
@@ -155,7 +155,7 @@ class WebDavClient(
                     )
                 }
         } catch (e: Exception) {
-            Log.e("WebDavClient", "Failed to list folders", e)
+            SafeLogger.e("WebDavClient", "Failed to list folders", e)
             emptyList()
         }
     }
@@ -178,12 +178,12 @@ class WebDavClient(
     suspend fun uploadFile(localFile: File, remotePath: String): Boolean = withContext(Dispatchers.IO) {
         try {
             val fullPath = buildFullPath(remotePath)
-            Log.d("WebDavClient", "Uploading to: $fullPath")
+            SafeLogger.d("WebDavClient", "Uploading to: $fullPath")
 
             sardine.put(fullPath, localFile, null)
             true
         } catch (e: Exception) {
-            Log.e("WebDavClient", "Upload failed", e)
+            SafeLogger.e("WebDavClient", "Upload failed", e)
             false
         }
     }
@@ -191,14 +191,14 @@ class WebDavClient(
     suspend fun uploadFile(inputStream: java.io.InputStream, remotePath: String, contentLength: Long): Boolean = withContext(Dispatchers.IO) {
         try {
             val fullPath = buildFullPath(remotePath)
-            Log.d("WebDavClient", "Uploading stream to: $fullPath")
+            SafeLogger.d("WebDavClient", "Uploading stream to: $fullPath")
 
             // Read stream into byte array (sardine requires byte array for upload)
             val bytes = inputStream.readBytes()
             sardine.put(fullPath, bytes, null)
             true
         } catch (e: Exception) {
-            Log.e("WebDavClient", "Upload from stream failed", e)
+            SafeLogger.e("WebDavClient", "Upload from stream failed", e)
             false
         }
     }
@@ -206,7 +206,7 @@ class WebDavClient(
     suspend fun downloadFile(remotePath: String, localFile: File): Boolean = withContext(Dispatchers.IO) {
         try {
             val fullPath = buildFullPath(remotePath)
-            Log.d("WebDavClient", "Downloading from: $fullPath")
+            SafeLogger.d("WebDavClient", "Downloading from: $fullPath")
 
             localFile.parentFile?.mkdirs()
 
@@ -217,7 +217,7 @@ class WebDavClient(
             }
             true
         } catch (e: Exception) {
-            Log.e("WebDavClient", "Download failed", e)
+            SafeLogger.e("WebDavClient", "Download failed", e)
             false
         }
     }
@@ -225,11 +225,11 @@ class WebDavClient(
     suspend fun getFileStream(remotePath: String): java.io.InputStream? = withContext(Dispatchers.IO) {
         try {
             val fullPath = buildFullPath(remotePath)
-            Log.d("WebDavClient", "Getting file stream from: $fullPath")
+            SafeLogger.d("WebDavClient", "Getting file stream from: $fullPath")
 
             sardine.get(fullPath)
         } catch (e: Exception) {
-            Log.e("WebDavClient", "Failed to get file stream from: $remotePath", e)
+            SafeLogger.e("WebDavClient", "Failed to get file stream from: $remotePath", e)
             null
         }
     }
@@ -237,12 +237,12 @@ class WebDavClient(
     suspend fun deleteFile(remotePath: String): Boolean = withContext(Dispatchers.IO) {
         try {
             val fullPath = buildFullPath(remotePath)
-            Log.d("WebDavClient", "Deleting: $fullPath")
+            SafeLogger.d("WebDavClient", "Deleting: $fullPath")
 
             sardine.delete(fullPath)
             true
         } catch (e: Exception) {
-            Log.e("WebDavClient", "Delete failed", e)
+            SafeLogger.e("WebDavClient", "Delete failed", e)
             false
         }
     }
@@ -250,12 +250,12 @@ class WebDavClient(
     suspend fun createDirectory(remotePath: String): Boolean = withContext(Dispatchers.IO) {
         try {
             val fullPath = buildFullPath(remotePath)
-            Log.d("WebDavClient", "Creating directory: $fullPath")
+            SafeLogger.d("WebDavClient", "Creating directory: $fullPath")
 
             sardine.createDirectory(fullPath)
             true
         } catch (e: Exception) {
-            Log.e("WebDavClient", "Create directory failed", e)
+            SafeLogger.e("WebDavClient", "Create directory failed", e)
             false
         }
     }

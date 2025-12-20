@@ -1,6 +1,6 @@
 package com.nextcloud.sync.utils
 
-import android.util.Log
+import com.nextcloud.sync.utils.SafeLogger
 import java.io.File
 
 /**
@@ -32,7 +32,7 @@ object PathValidator {
      */
     fun sanitizeFileName(fileName: String?): String? {
         if (fileName.isNullOrBlank()) {
-            Log.w(TAG, "File name is null or blank")
+            SafeLogger.w(TAG, "File name is null or blank")
             return null
         }
 
@@ -43,13 +43,13 @@ object PathValidator {
 
         // Check for absolute paths (should be file names only)
         if (sanitized.startsWith("/") || sanitized.contains("\\") || sanitized.contains(":")) {
-            Log.w(TAG, "File name contains path separators: $fileName")
+            SafeLogger.w(TAG, "File name contains path separators: $fileName")
             return null
         }
 
         // Check for parent directory references
         if (sanitized == ".." || sanitized == ".") {
-            Log.w(TAG, "File name is directory reference: $fileName")
+            SafeLogger.w(TAG, "File name is directory reference: $fileName")
             return null
         }
 
@@ -58,7 +58,7 @@ object PathValidator {
 
         // Ensure name is not empty after sanitization
         if (sanitized.isBlank()) {
-            Log.w(TAG, "File name is blank after sanitization: $fileName")
+            SafeLogger.w(TAG, "File name is blank after sanitization: $fileName")
             return null
         }
 
@@ -68,7 +68,7 @@ object PathValidator {
             val nameWithoutExt = sanitized.substringBeforeLast('.')
             val maxNameLength = 255 - extension.length - 1 // -1 for the dot
             sanitized = nameWithoutExt.take(maxNameLength) + if (extension.isNotEmpty()) ".$extension" else ""
-            Log.w(TAG, "File name truncated: $fileName -> $sanitized")
+            SafeLogger.w(TAG, "File name truncated: $fileName -> $sanitized")
         }
 
         return sanitized
@@ -93,14 +93,14 @@ object PathValidator {
 
         // Check for absolute paths
         if (path.startsWith("/") || path.startsWith("\\") || path.contains(":")) {
-            Log.w(TAG, "Relative path is absolute: $relativePath")
+            SafeLogger.w(TAG, "Relative path is absolute: $relativePath")
             return null
         }
 
         // Check for path traversal patterns
         PATH_TRAVERSAL_PATTERNS.forEach { pattern ->
             if (path.contains(pattern)) {
-                Log.w(TAG, "Path contains traversal pattern '$pattern': $relativePath")
+                SafeLogger.w(TAG, "Path contains traversal pattern '$pattern': $relativePath")
                 return null
             }
         }
@@ -120,14 +120,14 @@ object PathValidator {
         val parts = path.split("/")
         val sanitizedParts = parts.mapNotNull { part ->
             if (part == ".." || part == ".") {
-                Log.w(TAG, "Path contains directory reference: $relativePath")
+                SafeLogger.w(TAG, "Path contains directory reference: $relativePath")
                 return null
             }
             sanitizeFileName(part)
         }
 
         if (sanitizedParts.size != parts.size) {
-            Log.w(TAG, "Some path components failed sanitization: $relativePath")
+            SafeLogger.w(TAG, "Some path components failed sanitization: $relativePath")
             return null
         }
 
@@ -158,15 +158,15 @@ object PathValidator {
 
             // Check if target is within root
             if (!target.canonicalPath.startsWith(root.canonicalPath)) {
-                Log.w(TAG, "Path escapes root directory: $relativePath")
-                Log.w(TAG, "  Root: ${root.canonicalPath}")
-                Log.w(TAG, "  Target: ${target.canonicalPath}")
+                SafeLogger.w(TAG, "Path escapes root directory: $relativePath")
+                SafeLogger.w(TAG, "  Root: ${root.canonicalPath}")
+                SafeLogger.w(TAG, "  Target: ${target.canonicalPath}")
                 return null
             }
 
             return target.absolutePath
         } catch (e: Exception) {
-            Log.e(TAG, "Error validating path: $relativePath", e)
+            SafeLogger.e(TAG, "Error validating path: $relativePath", e)
             return null
         }
     }

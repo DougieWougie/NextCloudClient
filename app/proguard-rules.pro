@@ -34,3 +34,22 @@
 
 # Keep model classes
 -keep class com.nextcloud.sync.models.** { *; }
+
+# Strip all logging calls in release builds for security
+# Remove verbose, debug, and info logs completely
+-assumenosideeffects class android.util.Log {
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
+    public static int w(...);
+    public static int e(...);
+}
+
+# Also strip SafeLogger calls (they already check BuildConfig.DEBUG internally)
+-assumenosideeffects class com.nextcloud.sync.utils.SafeLogger {
+    public static void v(...);
+    public static void d(...);
+    public static void i(...);
+    public static void w(...);
+    public static void e(...);
+}

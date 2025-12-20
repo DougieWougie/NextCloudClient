@@ -2,7 +2,7 @@ package com.nextcloud.sync.controllers.sync
 
 import android.content.Context
 import android.net.Uri
-import android.util.Log
+import com.nextcloud.sync.utils.SafeLogger
 import com.nextcloud.sync.models.data.SyncStatus
 import com.nextcloud.sync.models.database.entities.ConflictEntity
 import com.nextcloud.sync.models.database.entities.FileEntity
@@ -57,7 +57,7 @@ class SyncController(
 
             callback.onSyncComplete(stats)
         } catch (e: Exception) {
-            Log.e("SyncController", "Sync failed", e)
+            SafeLogger.e("SyncController", "Sync failed", e)
             callback.onSyncError("Sync failed: ${e.message}")
         }
     }
@@ -73,7 +73,7 @@ class SyncController(
             val rootDoc = documentHelper.getDocumentFile(localPath)
 
             if (rootDoc == null) {
-                Log.e("SyncController", "Failed to access DocumentFile at: $localPath")
+                SafeLogger.e("SyncController", "Failed to access DocumentFile at: $localPath")
                 return emptyList()
             }
 
@@ -95,7 +95,7 @@ class SyncController(
                         )
                     )
                 } catch (e: Exception) {
-                    Log.e("SyncController", "Failed to scan DocumentFile: ${docFile.name}", e)
+                    SafeLogger.e("SyncController", "Failed to scan DocumentFile: ${docFile.name}", e)
                 }
             }
         } else {
@@ -120,7 +120,7 @@ class SyncController(
                             )
                         )
                     } catch (e: Exception) {
-                        Log.e("SyncController", "Failed to scan file: ${file.name}", e)
+                        SafeLogger.e("SyncController", "Failed to scan file: ${file.name}", e)
                     }
                 }
             }
@@ -141,7 +141,7 @@ class SyncController(
                 )
             }
         } catch (e: Exception) {
-            Log.e("SyncController", "Failed to scan remote files", e)
+            SafeLogger.e("SyncController", "Failed to scan remote files", e)
             emptyList()
         }
     }
@@ -246,7 +246,7 @@ class SyncController(
                 // Validate and sanitize the relative path
                 val sanitizedRelativePath = PathValidator.validateRelativePath(localFile.relativePath)
                 if (sanitizedRelativePath == null) {
-                    Log.w("SyncController", "Skipping upload - invalid relative path: ${localFile.relativePath}")
+                    SafeLogger.w("SyncController", "Skipping upload - invalid relative path: ${localFile.relativePath}")
                     current++
                     callback.onSyncProgress(current, total)
                     return@forEach
@@ -266,7 +266,7 @@ class SyncController(
                             webDavClient.uploadFile(stream, remotePath, localFile.size)
                         }
                     } else {
-                        Log.e("SyncController", "Failed to open input stream for ${localFile.path}")
+                        SafeLogger.e("SyncController", "Failed to open input stream for ${localFile.path}")
                         false
                     }
                 } else {
@@ -300,7 +300,7 @@ class SyncController(
                 current++
                 callback.onSyncProgress(current, total)
             } catch (e: Exception) {
-                Log.e("SyncController", "Upload failed for ${localFile.path}", e)
+                SafeLogger.e("SyncController", "Upload failed for ${localFile.path}", e)
             }
         }
 
@@ -310,7 +310,7 @@ class SyncController(
                 // Extract and validate file name from remote path
                 val fileName = PathValidator.extractFileName(remoteFile.path)
                 if (fileName == null) {
-                    Log.w("SyncController", "Skipping download - invalid file name: ${remoteFile.path}")
+                    SafeLogger.w("SyncController", "Skipping download - invalid file name: ${remoteFile.path}")
                     current++
                     callback.onSyncProgress(current, total)
                     return@forEach
@@ -319,7 +319,7 @@ class SyncController(
                 // Extract and validate relative path
                 val relativePath = PathValidator.extractRelativePath(remoteFile.path, folder.remotePath)
                 if (relativePath == null) {
-                    Log.w("SyncController", "Skipping download - invalid relative path: ${remoteFile.path}")
+                    SafeLogger.w("SyncController", "Skipping download - invalid relative path: ${remoteFile.path}")
                     current++
                     callback.onSyncProgress(current, total)
                     return@forEach
@@ -378,7 +378,7 @@ class SyncController(
                     // Validate that the final path stays within the sync folder
                     val validatedPath = PathValidator.validatePathWithinRoot(folder.localPath, relativePath)
                     if (validatedPath == null) {
-                        Log.w("SyncController", "Skipping download - path escapes sync folder: $relativePath")
+                        SafeLogger.w("SyncController", "Skipping download - path escapes sync folder: $relativePath")
                         current++
                         callback.onSyncProgress(current, total)
                         return@forEach
@@ -431,7 +431,7 @@ class SyncController(
                 current++
                 callback.onSyncProgress(current, total)
             } catch (e: Exception) {
-                Log.e("SyncController", "Download failed for ${remoteFile.path}", e)
+                SafeLogger.e("SyncController", "Download failed for ${remoteFile.path}", e)
             }
         }
 
