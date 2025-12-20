@@ -1,5 +1,7 @@
 package com.nextcloud.sync.controllers.sync
 
+import android.content.Context
+import android.net.Uri
 import android.util.Log
 import com.nextcloud.sync.models.data.SyncStatus
 import com.nextcloud.sync.models.database.entities.ConflictEntity
@@ -9,10 +11,12 @@ import com.nextcloud.sync.models.network.WebDavClient
 import com.nextcloud.sync.models.repository.ConflictRepository
 import com.nextcloud.sync.models.repository.FileRepository
 import com.nextcloud.sync.models.repository.FolderRepository
+import com.nextcloud.sync.utils.DocumentFileHelper
 import com.nextcloud.sync.utils.FileHashUtil
 import java.io.File
 
 class SyncController(
+    private val context: Context,
     private val fileRepository: FileRepository,
     private val folderRepository: FolderRepository,
     private val conflictRepository: ConflictRepository,
@@ -59,27 +63,64 @@ class SyncController(
 
     private suspend fun scanLocalFiles(folder: FolderEntity): List<LocalFileInfo> {
         val localFiles = mutableListOf<LocalFileInfo>()
-        val localDir = File(folder.localPath)
+        val localPath = folder.localPath
 
-        if (!localDir.exists()) {
-            localDir.mkdirs()
-            return emptyList()
-        }
+        // Check if this is a content URI or a regular file path
+        if (localPath.startsWith("content://")) {
+            // Use DocumentFile API for content URIs
+            val documentHelper = DocumentFileHelper(context)
+            val rootDoc = documentHelper.getDocumentFile(localPath)
 
-        localDir.walkTopDown().forEach { file ->
-            if (file.isFile) {
+            if (rootDoc == null) {
+                Log.e("SyncController", "Failed to access DocumentFile at: $localPath")
+                return emptyList()
+            }
+
+            val documentFiles = documentHelper.listAllFiles(rootDoc)
+            documentFiles.forEach { docFile ->
                 try {
+                    // Calculate hash from content URI
+                    val hash = documentHelper.openInputStream(docFile.uri)?.use { inputStream ->
+                        FileHashUtil.calculateHash(inputStream)
+                    } ?: ""
+
                     localFiles.add(
                         LocalFileInfo(
-                            path = file.absolutePath,
-                            relativePath = file.relativeTo(localDir).path,
-                            size = file.length(),
-                            modified = file.lastModified(),
-                            hash = FileHashUtil.calculateHash(file)
+                            path = docFile.uri.toString(),
+                            relativePath = docFile.relativePath,
+                            size = docFile.size,
+                            modified = docFile.lastModified,
+                            hash = hash
                         )
                     )
                 } catch (e: Exception) {
-                    Log.e("SyncController", "Failed to scan file: ${file.name}", e)
+                    Log.e("SyncController", "Failed to scan DocumentFile: ${docFile.name}", e)
+                }
+            }
+        } else {
+            // Use regular File API for filesystem paths
+            val localDir = File(localPath)
+
+            if (!localDir.exists()) {
+                localDir.mkdirs()
+                return emptyList()
+            }
+
+            localDir.walkTopDown().forEach { file ->
+                if (file.isFile) {
+                    try {
+                        localFiles.add(
+                            LocalFileInfo(
+                                path = file.absolutePath,
+                                relativePath = file.relativeTo(localDir).path,
+                                size = file.length(),
+                                modified = file.lastModified(),
+                                hash = FileHashUtil.calculateHash(file)
+                            )
+                        )
+                    } catch (e: Exception) {
+                        Log.e("SyncController", "Failed to scan file: ${file.name}", e)
+                    }
                 }
             }
         }
@@ -202,7 +243,26 @@ class SyncController(
         plan.toUpload.forEach { localFile ->
             try {
                 val remotePath = "${folder.remotePath}/${localFile.relativePath}"
-                val success = webDavClient.uploadFile(File(localFile.path), remotePath)
+                val success: Boolean
+
+                // Check if localPath is a content URI or file path
+                if (localFile.path.startsWith("content://")) {
+                    // Upload from content URI
+                    val documentHelper = DocumentFileHelper(context)
+                    val inputStream = documentHelper.openInputStream(Uri.parse(localFile.path))
+
+                    success = if (inputStream != null) {
+                        inputStream.use { stream ->
+                            webDavClient.uploadFile(stream, remotePath, localFile.size)
+                        }
+                    } else {
+                        Log.e("SyncController", "Failed to open input stream for ${localFile.path}")
+                        false
+                    }
+                } else {
+                    // Upload from file path
+                    success = webDavClient.uploadFile(File(localFile.path), remotePath)
+                }
 
                 if (success) {
                     // Update database
@@ -238,24 +298,87 @@ class SyncController(
         plan.toDownload.forEach { remoteFile ->
             try {
                 val fileName = remoteFile.path.substringAfterLast('/')
-                val localPath = "${folder.localPath}/$fileName"
-                val success = webDavClient.downloadFile(remoteFile.path, File(localPath))
+                val relativePath = remoteFile.path.removePrefix(folder.remotePath).removePrefix("/")
+                var success = false
+                var finalLocalPath = ""
+                var lastModified = 0L
+
+                // Check if folder path is a content URI or file path
+                if (folder.localPath.startsWith("content://")) {
+                    // Download to content URI
+                    val documentHelper = DocumentFileHelper(context)
+                    val rootDoc = documentHelper.getDocumentFile(folder.localPath)
+
+                    if (rootDoc != null) {
+                        // Ensure directory structure exists
+                        val pathParts = relativePath.split("/")
+                        val dirPath = pathParts.dropLast(1).joinToString("/")
+                        val targetDir = if (dirPath.isEmpty()) {
+                            rootDoc
+                        } else {
+                            documentHelper.ensureDirectoryPath(rootDoc, dirPath)
+                        }
+
+                        if (targetDir != null) {
+                            // Create or get the file
+                            val existingFile = targetDir.listFiles().find { it.name == fileName }
+                            val targetFile = existingFile ?: documentHelper.createFile(
+                                targetDir,
+                                fileName,
+                                "application/octet-stream"
+                            )
+
+                            if (targetFile != null) {
+                                val outputStream = documentHelper.openOutputStream(targetFile.uri)
+                                if (outputStream != null) {
+                                    val inputStream = webDavClient.getFileStream(remoteFile.path)
+                                    if (inputStream != null) {
+                                        outputStream.use { output ->
+                                            inputStream.use { input ->
+                                                input.copyTo(output)
+                                            }
+                                        }
+                                        success = true
+                                        finalLocalPath = targetFile.uri.toString()
+                                        lastModified = targetFile.lastModified()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // Download to file path
+                    val localPath = "${folder.localPath}/$fileName"
+                    success = webDavClient.downloadFile(remoteFile.path, File(localPath))
+                    if (success) {
+                        finalLocalPath = localPath
+                        lastModified = File(localPath).lastModified()
+                    }
+                }
 
                 if (success) {
-                    val localHash = FileHashUtil.calculateHash(File(localPath))
+                    // Calculate hash
+                    val localHash = if (finalLocalPath.startsWith("content://")) {
+                        val documentHelper = DocumentFileHelper(context)
+                        documentHelper.openInputStream(Uri.parse(finalLocalPath))?.use { stream ->
+                            FileHashUtil.calculateHash(stream)
+                        } ?: ""
+                    } else {
+                        FileHashUtil.calculateHash(File(finalLocalPath))
+                    }
 
                     // Update database
                     fileRepository.upsertFile(
                         FileEntity(
                             folderId = folder.id,
-                            localPath = localPath,
+                            localPath = finalLocalPath,
                             remotePath = remoteFile.path,
                             fileName = fileName,
                             fileSize = remoteFile.size,
-                            mimeType = getMimeType(localPath),
+                            mimeType = getMimeType(fileName),
                             localHash = localHash,
                             remoteHash = remoteFile.hash,
-                            localModified = File(localPath).lastModified(),
+                            localModified = lastModified,
                             remoteModified = remoteFile.modified,
                             syncStatus = SyncStatus.SYNCED,
                             lastSync = System.currentTimeMillis(),

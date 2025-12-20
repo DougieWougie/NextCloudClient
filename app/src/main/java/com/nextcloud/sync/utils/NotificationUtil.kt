@@ -75,6 +75,18 @@ class NotificationUtil(private val context: Context) {
         notificationManager.notify(Constants.NOTIFICATION_ID_CONFLICT, notification)
     }
 
+    fun showSyncErrorNotification(errorMessage: String) {
+        val notification = NotificationCompat.Builder(context, Constants.CHANNEL_ID_SYNC)
+            .setContentTitle("Sync failed")
+            .setContentText(errorMessage)
+            .setSmallIcon(android.R.drawable.stat_notify_error)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+
+        notificationManager.notify(Constants.NOTIFICATION_ID_SYNC, notification)
+    }
+
     fun cancelSyncNotification() {
         notificationManager.cancel(Constants.NOTIFICATION_ID_SYNC)
     }

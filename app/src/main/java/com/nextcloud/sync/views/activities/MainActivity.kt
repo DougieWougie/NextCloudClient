@@ -115,15 +115,31 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startSync() {
-        binding.progressSync.visibility = View.VISIBLE
-        SyncWorker.scheduleImmediate(this)
-        Snackbar.make(binding.root, "Sync started", Snackbar.LENGTH_SHORT).show()
+        lifecycleScope.launch {
+            val folders = accountRepository.getActiveAccount()?.let { account ->
+                folderRepository.getFoldersByAccount(account.id)
+            } ?: emptyList()
 
-        // Hide progress after a delay (in a real app, this would be based on actual sync completion)
-        binding.progressSync.postDelayed({
-            binding.progressSync.visibility = View.GONE
-            loadLastSyncTime()
-        }, 3000)
+            if (folders.isEmpty()) {
+                Snackbar.make(
+                    binding.root,
+                    "No folders configured. Add a folder to sync.",
+                    Snackbar.LENGTH_LONG
+                ).show()
+                return@launch
+            }
+
+            binding.progressSync.visibility = View.VISIBLE
+            SyncWorker.scheduleImmediate(this@MainActivity)
+            Snackbar.make(binding.root, "Sync started for ${folders.size} folder(s)", Snackbar.LENGTH_SHORT).show()
+
+            // Hide progress after a delay (in a real app, this would be based on actual sync completion)
+            binding.progressSync.postDelayed({
+                binding.progressSync.visibility = View.GONE
+                loadLastSyncTime()
+                Snackbar.make(binding.root, "Sync completed", Snackbar.LENGTH_SHORT).show()
+            }, 5000)
+        }
     }
 
     private fun showDeleteConfirmation(folder: com.nextcloud.sync.models.database.entities.FolderEntity) {

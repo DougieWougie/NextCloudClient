@@ -100,4 +100,13 @@
 
     </LinearLayout>
 
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabCreateFolder"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="@dimen/spacing_medium"
+        android:contentDescription="Create Folder"
+        app:srcCompat="@android:drawable/ic_input_add"/>
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

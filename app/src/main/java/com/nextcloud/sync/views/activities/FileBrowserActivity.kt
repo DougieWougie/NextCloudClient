@@ -7,6 +7,7 @@ import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.nextcloud.sync.databinding.ActivityFileBrowserBinding
 import com.nextcloud.sync.models.database.AppDatabase
@@ -66,6 +67,10 @@ class FileBrowserActivity : AppCompatActivity() {
 
         binding.buttonParentFolder.setOnClickListener {
             navigateUp()
+        }
+
+        binding.fabCreateFolder.setOnClickListener {
+            showCreateFolderDialog()
         }
     }
 
@@ -155,6 +160,55 @@ class FileBrowserActivity : AppCompatActivity() {
             navigateUp()
         } else {
             super.onBackPressed()
+        }
+    }
+
+    private fun showCreateFolderDialog() {
+        val editText = android.widget.EditText(this).apply {
+            hint = "Folder name"
+            setPadding(50, 40, 50, 40)
+        }
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Create New Folder")
+            .setView(editText)
+            .setPositiveButton("Create") { _, _ ->
+                val folderName = editText.text.toString().trim()
+                if (folderName.isNotEmpty()) {
+                    createFolder(folderName)
+                } else {
+                    Snackbar.make(binding.root, "Folder name cannot be empty", Snackbar.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun createFolder(folderName: String) {
+        val newFolderPath = if (currentPath.endsWith("/")) {
+            "$currentPath$folderName"
+        } else {
+            "$currentPath/$folderName"
+        }
+
+        binding.progressBar.visibility = View.VISIBLE
+
+        lifecycleScope.launch {
+            try {
+                val success = webDavClient.createDirectory(newFolderPath)
+
+                binding.progressBar.visibility = View.GONE
+
+                if (success) {
+                    Snackbar.make(binding.root, "Folder created successfully", Snackbar.LENGTH_SHORT).show()
+                    loadFolders() // Reload to show the new folder
+                } else {
+                    Snackbar.make(binding.root, "Failed to create folder", Snackbar.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                binding.progressBar.visibility = View.GONE
+                Snackbar.make(binding.root, "Error: ${e.message}", Snackbar.LENGTH_LONG).show()
+            }
         }
     }
 

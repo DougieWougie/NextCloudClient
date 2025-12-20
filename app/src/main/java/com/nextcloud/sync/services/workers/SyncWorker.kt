@@ -40,15 +40,23 @@ class SyncWorker(
 
     override suspend fun doWork(): Result {
         try {
+            Log.d("SyncWorker", "Starting sync...")
+
             // Check if WiFi-only constraint needs to be enforced
             val isWifiRequired = inputData.getBoolean("wifi_only", false)
             if (isWifiRequired && !NetworkUtil.isWifiConnected(applicationContext)) {
+                Log.d("SyncWorker", "WiFi required but not connected, retrying later")
                 return Result.retry()
             }
 
             // Get active account
             val account = accountRepository.getActiveAccount()
-                ?: return Result.failure()
+            if (account == null) {
+                Log.e("SyncWorker", "No active account found")
+                return Result.failure()
+            }
+
+            Log.d("SyncWorker", "Syncing for account: ${account.username}")
 
             // Create WebDAV client
             val password = EncryptionUtil.decryptPassword(account.passwordEncrypted)
@@ -58,12 +66,16 @@ class SyncWorker(
             // Get sync-enabled folders
             val folders = folderRepository.getSyncEnabledFolders()
 
+            Log.d("SyncWorker", "Found ${folders.size} folders to sync")
+
             if (folders.isEmpty()) {
+                Log.d("SyncWorker", "No folders to sync")
                 return Result.success()
             }
 
             // Sync each folder
             val syncController = SyncController(
+                applicationContext,
                 fileRepository,
                 folderRepository,
                 conflictRepository,
@@ -75,14 +87,23 @@ class SyncWorker(
             var totalConflicts = 0
 
             folders.forEach { folder ->
-                val stats = syncFolder(syncController, folder.id)
-                totalUploaded += stats.uploaded
-                totalDownloaded += stats.downloaded
-                totalConflicts += stats.conflicts
+                Log.d("SyncWorker", "Syncing folder: ${folder.localPath} -> ${folder.remotePath}")
+                try {
+                    val stats = syncFolder(syncController, folder.id)
+                    totalUploaded += stats.uploaded
+                    totalDownloaded += stats.downloaded
+                    totalConflicts += stats.conflicts
+                    Log.d("SyncWorker", "Folder synced - Up: ${stats.uploaded}, Down: ${stats.downloaded}, Conflicts: ${stats.conflicts}")
+                } catch (e: Exception) {
+                    Log.e("SyncWorker", "Failed to sync folder ${folder.id}", e)
+                    // Continue with other folders even if one fails
+                }
             }
 
             // Update last sync time
             accountRepository.updateLastSync(account.id, System.currentTimeMillis())
+
+            Log.d("SyncWorker", "Sync completed - Total Up: $totalUploaded, Total Down: $totalDownloaded, Total Conflicts: $totalConflicts")
 
             // Show completion notification
             notificationUtil.showSyncCompleteNotification(
@@ -96,7 +117,8 @@ class SyncWorker(
 
             return Result.success()
         } catch (e: Exception) {
-            Log.e("SyncWorker", "Sync failed", e)
+            Log.e("SyncWorker", "Sync failed with exception", e)
+            notificationUtil.showSyncErrorNotification(e.message ?: "Unknown error")
             return Result.retry()
         }
     }

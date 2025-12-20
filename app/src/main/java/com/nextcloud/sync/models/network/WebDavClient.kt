@@ -160,13 +160,25 @@ class WebDavClient(
         }
     }
 
-    suspend fun uploadFile(localFile: File, remotePath: String): Boolean = withContext(Dispatchers.IO) {
-        try {
-            val fullPath = if (remotePath.startsWith("/")) {
+    private fun buildFullPath(remotePath: String): String {
+        // If remotePath already contains the webdav base path, use it with serverUrl only
+        // This happens when paths come from sardine.list() which returns absolute paths
+        return if (remotePath.contains("/remote.php/dav/files/") || remotePath.contains("/remote.php/webdav/")) {
+            "$serverUrl$remotePath"
+        } else {
+            // Otherwise, build the full path with webdavBaseUrl
+            if (remotePath.startsWith("/")) {
                 "$webdavBaseUrl$remotePath"
             } else {
                 "$webdavBaseUrl/$remotePath"
             }
+        }
+    }
+
+    suspend fun uploadFile(localFile: File, remotePath: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val fullPath = buildFullPath(remotePath)
+            Log.d("WebDavClient", "Uploading to: $fullPath")
 
             sardine.put(fullPath, localFile, null)
             true
@@ -176,13 +188,25 @@ class WebDavClient(
         }
     }
 
+    suspend fun uploadFile(inputStream: java.io.InputStream, remotePath: String, contentLength: Long): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val fullPath = buildFullPath(remotePath)
+            Log.d("WebDavClient", "Uploading stream to: $fullPath")
+
+            // Read stream into byte array (sardine requires byte array for upload)
+            val bytes = inputStream.readBytes()
+            sardine.put(fullPath, bytes, null)
+            true
+        } catch (e: Exception) {
+            Log.e("WebDavClient", "Upload from stream failed", e)
+            false
+        }
+    }
+
     suspend fun downloadFile(remotePath: String, localFile: File): Boolean = withContext(Dispatchers.IO) {
         try {
-            val fullPath = if (remotePath.startsWith("/")) {
-                "$webdavBaseUrl$remotePath"
-            } else {
-                "$webdavBaseUrl/$remotePath"
-            }
+            val fullPath = buildFullPath(remotePath)
+            Log.d("WebDavClient", "Downloading from: $fullPath")
 
             localFile.parentFile?.mkdirs()
 
@@ -198,13 +222,22 @@ class WebDavClient(
         }
     }
 
+    suspend fun getFileStream(remotePath: String): java.io.InputStream? = withContext(Dispatchers.IO) {
+        try {
+            val fullPath = buildFullPath(remotePath)
+            Log.d("WebDavClient", "Getting file stream from: $fullPath")
+
+            sardine.get(fullPath)
+        } catch (e: Exception) {
+            Log.e("WebDavClient", "Failed to get file stream from: $remotePath", e)
+            null
+        }
+    }
+
     suspend fun deleteFile(remotePath: String): Boolean = withContext(Dispatchers.IO) {
         try {
-            val fullPath = if (remotePath.startsWith("/")) {
-                "$webdavBaseUrl$remotePath"
-            } else {
-                "$webdavBaseUrl/$remotePath"
-            }
+            val fullPath = buildFullPath(remotePath)
+            Log.d("WebDavClient", "Deleting: $fullPath")
 
             sardine.delete(fullPath)
             true
@@ -216,11 +249,8 @@ class WebDavClient(
 
     suspend fun createDirectory(remotePath: String): Boolean = withContext(Dispatchers.IO) {
         try {
-            val fullPath = if (remotePath.startsWith("/")) {
-                "$webdavBaseUrl$remotePath"
-            } else {
-                "$webdavBaseUrl/$remotePath"
-            }
+            val fullPath = buildFullPath(remotePath)
+            Log.d("WebDavClient", "Creating directory: $fullPath")
 
             sardine.createDirectory(fullPath)
             true

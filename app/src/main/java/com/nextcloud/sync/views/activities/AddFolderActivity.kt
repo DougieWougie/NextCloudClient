@@ -93,17 +93,22 @@ class AddFolderActivity : AppCompatActivity() {
     }
 
     private fun handleFolderSelection(uri: Uri) {
-        contentResolver.takePersistableUriPermission(
-            uri,
-            Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-        )
+        try {
+            contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            )
 
-        selectedLocalPath = uri.toString()
+            selectedLocalPath = uri.toString()
 
-        // Extract folder name from URI for display
-        val folderName = DocumentsContract.getTreeDocumentId(uri).split(":").lastOrNull() ?: "Selected Folder"
-        binding.textLocalFolder.text = folderName
-        binding.textLocalFolderPath.text = uri.toString()
+            // Extract folder name from URI for display
+            val folderName = DocumentsContract.getTreeDocumentId(uri).split(":").lastOrNull() ?: "Selected Folder"
+            binding.textLocalFolder.text = folderName
+            binding.textLocalFolderPath.text = selectedLocalPath
+            binding.textLocalFolderPath.visibility = android.view.View.VISIBLE
+        } catch (e: Exception) {
+            Snackbar.make(binding.root, "Failed to select folder: ${e.message}", Snackbar.LENGTH_LONG).show()
+        }
     }
 
     private fun openFileBrowser() {
