@@ -58,12 +58,14 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.constraintlayout)
 
-    // Room (without SQLCipher for now)
+    // Room with SQLCipher encryption
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
-    // implementation(libs.sqlcipher)
-    // implementation(libs.androidx.sqlite)
+    implementation("net.zetetic:sqlcipher-android:4.12.0") {
+        isTransitive = true
+    }
+    implementation(libs.androidx.sqlite)
 
     // WorkManager
     implementation(libs.androidx.work.runtime)

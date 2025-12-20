@@ -1,13 +1,18 @@
 # Add project specific ProGuard rules here.
 
+# Suppress warnings for XML parsing
+-dontwarn org.xmlpull.v1.**
+-keep class org.xmlpull.** { *; }
+-dontwarn android.content.res.XmlResourceParser
+
 # Keep Room annotations
 -keep class * extends androidx.room.RoomDatabase
 -keep @androidx.room.Entity class *
 -dontwarn androidx.room.paging.**
 
 # Keep SQLCipher
--keep class net.sqlcipher.** { *; }
--keep class net.sqlcipher.database.** { *; }
+-keep class net.zetetic.** { *; }
+-keep class net.zetetic.database.** { *; }
 
 # Keep OkHttp
 -dontwarn okhttp3.**
