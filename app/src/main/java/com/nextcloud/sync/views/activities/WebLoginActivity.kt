@@ -19,7 +19,8 @@ import com.nextcloud.sync.utils.EncryptionUtil
 import kotlinx.coroutines.launch
 
 class WebLoginActivity : AppCompatActivity() {
-    private lateinit var binding: ActivityWebLoginBinding
+    private var _binding: ActivityWebLoginBinding? = null
+    private val binding get() = _binding!!
     private lateinit var accountRepository: AccountRepository
     private lateinit var loginFlow: NextcloudLoginFlow
     private var serverUrl: String = ""
@@ -28,7 +29,7 @@ class WebLoginActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityWebLoginBinding.inflate(layoutInflater)
+        _binding = ActivityWebLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         serverUrl = intent.getStringExtra("server_url") ?: ""
@@ -161,10 +162,25 @@ class WebLoginActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        if (binding.webView.canGoBack()) {
-            binding.webView.goBack()
+        if (_binding?.webView?.canGoBack() == true) {
+            _binding?.webView?.goBack()
         } else {
             super.onBackPressed()
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Properly clean up WebView to prevent memory leaks
+        _binding?.webView?.apply {
+            loadUrl("about:blank")
+            clearHistory()
+            clearCache(true)
+            onPause()
+            removeAllViews()
+            destroyDrawingCache()
+            destroy()
+        }
+        _binding = null
     }
 }

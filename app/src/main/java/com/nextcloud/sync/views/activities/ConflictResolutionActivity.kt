@@ -20,14 +20,15 @@ import com.nextcloud.sync.views.adapters.ConflictListAdapter
 import kotlinx.coroutines.launch
 
 class ConflictResolutionActivity : AppCompatActivity() {
-    private lateinit var binding: ActivityConflictResolutionBinding
+    private var _binding: ActivityConflictResolutionBinding? = null
+    private val binding get() = _binding!!
     private lateinit var conflictController: ConflictResolutionController
     private lateinit var adapter: ConflictListAdapter
     private val conflicts = mutableListOf<ConflictEntity>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityConflictResolutionBinding.inflate(layoutInflater)
+        _binding = ActivityConflictResolutionBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         setupController()
@@ -123,5 +124,10 @@ class ConflictResolutionActivity : AppCompatActivity() {
     override fun onSupportNavigateUp(): Boolean {
         finish()
         return true
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        _binding = null
     }
 }

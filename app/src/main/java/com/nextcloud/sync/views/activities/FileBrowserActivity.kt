@@ -19,7 +19,8 @@ import com.nextcloud.sync.views.adapters.RemoteFolderAdapter
 import kotlinx.coroutines.launch
 
 class FileBrowserActivity : AppCompatActivity() {
-    private lateinit var binding: ActivityFileBrowserBinding
+    private var _binding: ActivityFileBrowserBinding? = null
+    private val binding get() = _binding!!
     private lateinit var accountRepository: AccountRepository
     private lateinit var webDavClient: WebDavClient
     private lateinit var adapter: RemoteFolderAdapter
@@ -29,7 +30,7 @@ class FileBrowserActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityFileBrowserBinding.inflate(layoutInflater)
+        _binding = ActivityFileBrowserBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         currentPath = intent.getStringExtra("current_path") ?: "/"
@@ -218,6 +219,11 @@ class FileBrowserActivity : AppCompatActivity() {
                 Snackbar.make(binding.root, "Error: ${e.message}", Snackbar.LENGTH_LONG).show()
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        _binding = null
     }
 
     data class FolderItem(

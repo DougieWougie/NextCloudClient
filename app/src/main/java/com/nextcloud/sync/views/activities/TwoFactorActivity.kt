@@ -15,13 +15,14 @@ import com.nextcloud.sync.utils.AuthRateLimiter
 import kotlinx.coroutines.launch
 
 class TwoFactorActivity : AppCompatActivity() {
-    private lateinit var binding: ActivityTwoFactorBinding
+    private var _binding: ActivityTwoFactorBinding? = null
+    private val binding get() = _binding!!
     private lateinit var twoFactorController: TwoFactorController
     private var accountId: Long = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityTwoFactorBinding.inflate(layoutInflater)
+        _binding = ActivityTwoFactorBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         accountId = intent.getLongExtra("account_id", 0)
@@ -87,5 +88,10 @@ class TwoFactorActivity : AppCompatActivity() {
             .setMessage(message)
             .setPositiveButton("OK", null)
             .show()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        _binding = null
     }
 }

@@ -13,7 +13,8 @@ import com.nextcloud.sync.utils.UriPathHelper
 import kotlinx.coroutines.launch
 
 class EditFolderActivity : AppCompatActivity() {
-    private lateinit var binding: ActivityEditFolderBinding
+    private var _binding: ActivityEditFolderBinding? = null
+    private val binding get() = _binding!!
     private lateinit var folderRepository: FolderRepository
 
     private var folderId: Long = 0
@@ -21,7 +22,7 @@ class EditFolderActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityEditFolderBinding.inflate(layoutInflater)
+        _binding = ActivityEditFolderBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         folderId = intent.getLongExtra("folder_id", 0)
@@ -130,6 +131,11 @@ class EditFolderActivity : AppCompatActivity() {
     override fun onSupportNavigateUp(): Boolean {
         finish()
         return true
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        _binding = null
     }
 
     companion object {

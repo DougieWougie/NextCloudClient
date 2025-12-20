@@ -19,7 +19,8 @@ import com.nextcloud.sync.models.repository.FolderRepository
 import kotlinx.coroutines.launch
 
 class AddFolderActivity : AppCompatActivity() {
-    private lateinit var binding: ActivityAddFolderBinding
+    private var _binding: ActivityAddFolderBinding? = null
+    private val binding get() = _binding!!
     private lateinit var folderRepository: FolderRepository
     private lateinit var accountRepository: AccountRepository
 
@@ -37,7 +38,7 @@ class AddFolderActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityAddFolderBinding.inflate(layoutInflater)
+        _binding = ActivityAddFolderBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         setupToolbar()
@@ -162,6 +163,11 @@ class AddFolderActivity : AppCompatActivity() {
     override fun onSupportNavigateUp(): Boolean {
         finish()
         return true
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        _binding = null
     }
 
     companion object {

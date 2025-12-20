@@ -14,13 +14,14 @@ import com.nextcloud.sync.utils.ThemePreference
 import kotlinx.coroutines.launch
 
 class SettingsActivity : AppCompatActivity() {
-    private lateinit var binding: ActivitySettingsBinding
+    private var _binding: ActivitySettingsBinding? = null
+    private val binding get() = _binding!!
     private lateinit var accountRepository: AccountRepository
     private var currentAccount: AccountEntity? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivitySettingsBinding.inflate(layoutInflater)
+        _binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         setupToolbar()
@@ -165,5 +166,10 @@ class SettingsActivity : AppCompatActivity() {
     override fun onSupportNavigateUp(): Boolean {
         finish()
         return true
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        _binding = null
     }
 }

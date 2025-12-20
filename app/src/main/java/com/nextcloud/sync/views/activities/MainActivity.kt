@@ -24,14 +24,15 @@ import java.util.Date
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var binding: ActivityMainBinding
+    private var _binding: ActivityMainBinding? = null
+    private val binding get() = _binding!!
     private lateinit var folderRepository: FolderRepository
     private lateinit var accountRepository: AccountRepository
     private lateinit var folderAdapter: SyncFolderAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
+        _binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         setupToolbar()
@@ -135,32 +136,38 @@ class MainActivity : AppCompatActivity() {
                 return@launch
             }
 
-            binding.progressSync.visibility = View.VISIBLE
+            _binding?.progressSync?.visibility = View.VISIBLE
             SyncWorker.scheduleImmediate(this@MainActivity)
             Snackbar.make(binding.root, "Sync started for ${folders.size} folder(s)", Snackbar.LENGTH_SHORT).show()
 
-            // Hide progress after a delay (in a real app, this would be based on actual sync completion)
-            binding.progressSync.postDelayed({
-                binding.progressSync.visibility = View.GONE
+            // Hide progress after a delay using lifecycle-aware coroutine
+            lifecycleScope.launch {
+                kotlinx.coroutines.delay(5000)
+                _binding?.progressSync?.visibility = View.GONE
                 loadLastSyncTime()
-                Snackbar.make(binding.root, "Sync completed", Snackbar.LENGTH_SHORT).show()
-            }, 5000)
+                _binding?.root?.let {
+                    Snackbar.make(it, "Sync completed", Snackbar.LENGTH_SHORT).show()
+                }
+            }
         }
     }
 
     private fun syncSingleFolder(folder: com.nextcloud.sync.models.database.entities.FolderEntity) {
-        binding.progressSync.visibility = View.VISIBLE
+        _binding?.progressSync?.visibility = View.VISIBLE
         SyncWorker.scheduleImmediate(this@MainActivity)
 
         val localFolderName = com.nextcloud.sync.utils.UriPathHelper.getDisplayName(this, folder.localPath)
         Snackbar.make(binding.root, "Syncing $localFolderName...", Snackbar.LENGTH_SHORT).show()
 
-        // Hide progress after a delay (in a real app, this would be based on actual sync completion)
-        binding.progressSync.postDelayed({
-            binding.progressSync.visibility = View.GONE
+        // Hide progress after a delay using lifecycle-aware coroutine
+        lifecycleScope.launch {
+            kotlinx.coroutines.delay(5000)
+            _binding?.progressSync?.visibility = View.GONE
             loadLastSyncTime()
-            Snackbar.make(binding.root, "Sync completed for $localFolderName", Snackbar.LENGTH_SHORT).show()
-        }, 5000)
+            _binding?.root?.let {
+                Snackbar.make(it, "Sync completed for $localFolderName", Snackbar.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun openEditFolder(folder: com.nextcloud.sync.models.database.entities.FolderEntity) {
@@ -213,6 +220,11 @@ class MainActivity : AppCompatActivity() {
             }
             else -> super.onOptionsItemSelected(item)
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        _binding = null
     }
 
     companion object {
