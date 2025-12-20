@@ -11,6 +11,7 @@ import com.nextcloud.sync.databinding.ActivityTwoFactorBinding
 import com.nextcloud.sync.models.database.AppDatabase
 import com.nextcloud.sync.models.network.NextcloudAuthenticator
 import com.nextcloud.sync.models.repository.AccountRepository
+import com.nextcloud.sync.utils.AuthRateLimiter
 import kotlinx.coroutines.launch
 
 class TwoFactorActivity : AppCompatActivity() {
@@ -33,8 +34,9 @@ class TwoFactorActivity : AppCompatActivity() {
         val db = AppDatabase.getInstance(this)
         val accountRepository = AccountRepository(db.accountDao())
         val nextcloudAuthenticator = NextcloudAuthenticator()
+        val rateLimiter = AuthRateLimiter.getInstance(this)
 
-        twoFactorController = TwoFactorController(accountRepository, nextcloudAuthenticator)
+        twoFactorController = TwoFactorController(accountRepository, nextcloudAuthenticator, rateLimiter)
     }
 
     private fun setupViews() {

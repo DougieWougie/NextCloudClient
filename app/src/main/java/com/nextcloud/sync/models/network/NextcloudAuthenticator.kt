@@ -1,5 +1,7 @@
 package com.nextcloud.sync.models.network
 
+import com.nextcloud.sync.utils.InputValidator
+import com.nextcloud.sync.utils.SafeLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Credentials
@@ -40,17 +42,58 @@ class NextcloudAuthenticator {
 
             when (response.code) {
                 200 -> {
-                    val jsonResponse = JSONObject(response.body?.string() ?: "")
-                    val appPassword = jsonResponse.getJSONObject("ocs")
-                        .getJSONObject("data")
-                        .getString("apppassword")
+                    val responseBody = response.body?.string() ?: ""
+                    response.close()
+
+                    SafeLogger.d("NextcloudAuthenticator", "2FA verification successful")
+
+                    // Validate and parse JSON safely
+                    val json = InputValidator.parseJsonSafely(responseBody)
+                        ?: return@withContext TwoFactorResult.Error("Invalid JSON response from server")
+
+                    // Validate OCS wrapper exists
+                    if (!json.has("ocs")) {
+                        return@withContext TwoFactorResult.Error("Missing OCS wrapper in server response")
+                    }
+
+                    val ocs = json.getJSONObject("ocs")
+
+                    // Validate data object exists
+                    if (!ocs.has("data")) {
+                        return@withContext TwoFactorResult.Error("Missing data in server response")
+                    }
+
+                    val data = ocs.getJSONObject("data")
+
+                    // Validate and extract app password
+                    val appPasswordValidation = InputValidator.validateJsonString(data, "apppassword", required = true, maxLength = 512)
+                    if (!appPasswordValidation.isValid()) {
+                        return@withContext TwoFactorResult.Error("Invalid app password: ${appPasswordValidation.getErrorOrNull()}")
+                    }
+                    val appPassword = data.getString("apppassword")
+
+                    // Validate it's a proper token
+                    val tokenCheck = InputValidator.validateToken(appPassword)
+                    if (!tokenCheck.isValid()) {
+                        return@withContext TwoFactorResult.Error("Invalid app password format: ${tokenCheck.getErrorOrNull()}")
+                    }
 
                     TwoFactorResult.Success(appPassword)
                 }
-                401, 403 -> TwoFactorResult.InvalidCode
-                else -> TwoFactorResult.Error("Verification failed: ${response.message}")
+                401, 403 -> {
+                    response.close()
+                    SafeLogger.w("NextcloudAuthenticator", "2FA verification failed - invalid code")
+                    TwoFactorResult.InvalidCode
+                }
+                else -> {
+                    val responseBody = response.body?.string() ?: ""
+                    response.close()
+                    SafeLogger.w("NextcloudAuthenticator", "2FA verification failed with HTTP ${response.code}")
+                    TwoFactorResult.Error("Verification failed: HTTP ${response.code}")
+                }
             }
         } catch (e: Exception) {
+            SafeLogger.e("NextcloudAuthenticator", "2FA verification failed", e)
             TwoFactorResult.Error("Verification failed: ${e.message}")
         }
     }

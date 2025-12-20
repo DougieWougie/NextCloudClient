@@ -1,5 +1,6 @@
 package com.nextcloud.sync.models.network
 
+import com.nextcloud.sync.utils.InputValidator
 import com.nextcloud.sync.utils.SafeLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -8,7 +9,6 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 /**
@@ -50,11 +50,49 @@ class NextcloudLoginFlow(private val serverUrl: String) {
             val responseBody = response.body?.string() ?: ""
             response.close()
 
-            val json = JSONObject(responseBody)
+            // Validate and parse JSON safely
+            val json = InputValidator.parseJsonSafely(responseBody)
+                ?: return@withContext LoginFlowInitResult.Error("Invalid JSON response from server")
+
+            // Validate required fields exist
+            if (!json.has("poll") || !json.has("login")) {
+                return@withContext LoginFlowInitResult.Error("Missing required fields in server response")
+            }
+
             val poll = json.getJSONObject("poll")
+
+            // Extract and validate poll token
+            val pollTokenValidation = InputValidator.validateJsonString(poll, "token", required = true, maxLength = 512)
+            if (!pollTokenValidation.isValid()) {
+                return@withContext LoginFlowInitResult.Error("Invalid poll token: ${pollTokenValidation.getErrorOrNull()}")
+            }
             val pollToken = poll.getString("token")
+
+            // Extract and validate poll endpoint
+            val pollEndpointValidation = InputValidator.validateJsonString(poll, "endpoint", required = true, maxLength = 2048)
+            if (!pollEndpointValidation.isValid()) {
+                return@withContext LoginFlowInitResult.Error("Invalid poll endpoint: ${pollEndpointValidation.getErrorOrNull()}")
+            }
             val pollEndpoint = poll.getString("endpoint")
+
+            // Validate it's a proper URL
+            val urlValidation = InputValidator.validateServerUrl(pollEndpoint)
+            if (!urlValidation.isValid()) {
+                return@withContext LoginFlowInitResult.Error("Invalid poll endpoint URL: ${urlValidation.getErrorOrNull()}")
+            }
+
+            // Extract and validate login URL
+            val loginUrlValidation = InputValidator.validateJsonString(json, "login", required = true, maxLength = 2048)
+            if (!loginUrlValidation.isValid()) {
+                return@withContext LoginFlowInitResult.Error("Invalid login URL: ${loginUrlValidation.getErrorOrNull()}")
+            }
             val loginUrl = json.getString("login")
+
+            // Validate it's a proper URL
+            val loginUrlCheck = InputValidator.validateServerUrl(loginUrl)
+            if (!loginUrlCheck.isValid()) {
+                return@withContext LoginFlowInitResult.Error("Invalid login URL format: ${loginUrlCheck.getErrorOrNull()}")
+            }
 
             LoginFlowInitResult.Success(
                 loginUrl = loginUrl,
@@ -100,10 +138,45 @@ class NextcloudLoginFlow(private val serverUrl: String) {
 
                         SafeLogger.d("NextcloudLoginFlow", "Login successful!")
 
-                        val json = JSONObject(responseBody)
+                        // Validate and parse JSON safely
+                        val json = InputValidator.parseJsonSafely(responseBody)
+                            ?: return@withContext LoginFlowPollResult.Error("Invalid JSON response from server")
+
+                        // Validate server URL
+                        val serverUrlValidation = InputValidator.validateJsonString(json, "server", required = true, maxLength = 2048)
+                        if (!serverUrlValidation.isValid()) {
+                            return@withContext LoginFlowPollResult.Error("Invalid server URL: ${serverUrlValidation.getErrorOrNull()}")
+                        }
                         val serverUrl = json.getString("server")
+
+                        val serverCheck = InputValidator.validateServerUrl(serverUrl)
+                        if (!serverCheck.isValid()) {
+                            return@withContext LoginFlowPollResult.Error("Invalid server URL format: ${serverCheck.getErrorOrNull()}")
+                        }
+
+                        // Validate login name
+                        val loginNameValidation = InputValidator.validateJsonString(json, "loginName", required = true, maxLength = 256)
+                        if (!loginNameValidation.isValid()) {
+                            return@withContext LoginFlowPollResult.Error("Invalid login name: ${loginNameValidation.getErrorOrNull()}")
+                        }
                         val loginName = json.getString("loginName")
+
+                        val usernameCheck = InputValidator.validateUsername(loginName)
+                        if (!usernameCheck.isValid()) {
+                            return@withContext LoginFlowPollResult.Error("Invalid username: ${usernameCheck.getErrorOrNull()}")
+                        }
+
+                        // Validate app password
+                        val appPasswordValidation = InputValidator.validateJsonString(json, "appPassword", required = true, maxLength = 512)
+                        if (!appPasswordValidation.isValid()) {
+                            return@withContext LoginFlowPollResult.Error("Invalid app password: ${appPasswordValidation.getErrorOrNull()}")
+                        }
                         val appPassword = json.getString("appPassword")
+
+                        val tokenCheck = InputValidator.validateToken(appPassword)
+                        if (!tokenCheck.isValid()) {
+                            return@withContext LoginFlowPollResult.Error("Invalid app password format: ${tokenCheck.getErrorOrNull()}")
+                        }
 
                         return@withContext LoginFlowPollResult.Success(
                             LoginCredentials(

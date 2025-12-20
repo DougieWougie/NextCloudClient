@@ -11,6 +11,7 @@ import com.nextcloud.sync.controllers.auth.LoginController
 import com.nextcloud.sync.databinding.ActivityLoginBinding
 import com.nextcloud.sync.models.database.AppDatabase
 import com.nextcloud.sync.models.repository.AccountRepository
+import com.nextcloud.sync.utils.AuthRateLimiter
 import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
@@ -43,8 +44,9 @@ class LoginActivity : AppCompatActivity() {
     private fun setupController() {
         val db = AppDatabase.getInstance(this)
         accountRepository = AccountRepository(db.accountDao())
+        val rateLimiter = AuthRateLimiter.getInstance(this)
 
-        loginController = LoginController(accountRepository)
+        loginController = LoginController(accountRepository, rateLimiter)
     }
 
     private fun setupViews() {

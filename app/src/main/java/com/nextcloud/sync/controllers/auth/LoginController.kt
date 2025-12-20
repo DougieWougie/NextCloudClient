@@ -4,10 +4,14 @@ import com.nextcloud.sync.models.database.entities.AccountEntity
 import com.nextcloud.sync.models.network.ConnectionResult
 import com.nextcloud.sync.models.network.WebDavClient
 import com.nextcloud.sync.models.repository.AccountRepository
+import com.nextcloud.sync.utils.AuthRateLimiter
 import com.nextcloud.sync.utils.EncryptionUtil
+import com.nextcloud.sync.utils.InputValidator
+import com.nextcloud.sync.utils.RateLimitResult
 
 class LoginController(
-    private val accountRepository: AccountRepository
+    private val accountRepository: AccountRepository,
+    private val rateLimiter: AuthRateLimiter
 ) {
     interface LoginCallback {
         fun onLoginSuccess(requiresTwoFactor: Boolean, accountId: Long)
@@ -22,19 +26,34 @@ class LoginController(
         callback: LoginCallback
     ) {
         // Validate inputs
-        if (!validateServerUrl(serverUrl)) {
-            callback.onValidationError("server_url", "Invalid server URL")
+        val urlValidation = InputValidator.validateServerUrl(serverUrl)
+        if (!urlValidation.isValid()) {
+            callback.onValidationError("server_url", urlValidation.getErrorOrNull() ?: "Invalid server URL")
             return
         }
 
-        if (username.isBlank()) {
-            callback.onValidationError("username", "Username is required")
+        val usernameValidation = InputValidator.validateUsername(username)
+        if (!usernameValidation.isValid()) {
+            callback.onValidationError("username", usernameValidation.getErrorOrNull() ?: "Invalid username")
             return
         }
 
-        if (password.isBlank()) {
-            callback.onValidationError("password", "Password is required")
+        val passwordValidation = InputValidator.validatePassword(password)
+        if (!passwordValidation.isValid()) {
+            callback.onValidationError("password", passwordValidation.getErrorOrNull() ?: "Invalid password")
             return
+        }
+
+        // Check rate limiting
+        val rateLimitIdentifier = "login:$username"
+        when (val rateLimitResult = rateLimiter.checkAttempt(rateLimitIdentifier)) {
+            is RateLimitResult.Blocked -> {
+                callback.onLoginError("Too many failed attempts. Please wait ${rateLimitResult.getWaitTimeFormatted()} before trying again.")
+                return
+            }
+            is RateLimitResult.Allowed -> {
+                // Continue with login
+            }
         }
 
         try {
@@ -58,6 +77,10 @@ class LoginController(
                     )
 
                     val accountId = accountRepository.insertAccount(account)
+
+                    // Record successful login
+                    rateLimiter.recordSuccessfulAttempt(rateLimitIdentifier)
+
                     callback.onLoginSuccess(requiresTwoFactor = false, accountId = accountId)
                 }
 
@@ -76,20 +99,24 @@ class LoginController(
                     )
 
                     val accountId = accountRepository.insertAccount(account)
+
+                    // Don't record as failed - user needs to complete 2FA
+                    // Rate limiting for 2FA will be handled separately
+
                     callback.onLoginSuccess(requiresTwoFactor = true, accountId = accountId)
                 }
 
                 is ConnectionResult.Error -> {
+                    // Record failed login attempt
+                    rateLimiter.recordFailedAttempt(rateLimitIdentifier)
                     callback.onLoginError(connectionResult.message)
                 }
             }
         } catch (e: Exception) {
+            // Record failed login attempt
+            rateLimiter.recordFailedAttempt(rateLimitIdentifier)
             callback.onLoginError("Connection failed: ${e.message}")
         }
-    }
-
-    private fun validateServerUrl(url: String): Boolean {
-        return url.startsWith("http://") || url.startsWith("https://")
     }
 
     private fun normalizeServerUrl(url: String): String {
