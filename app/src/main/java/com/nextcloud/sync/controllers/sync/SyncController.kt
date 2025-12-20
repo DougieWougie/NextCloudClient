@@ -13,6 +13,7 @@ import com.nextcloud.sync.models.repository.FileRepository
 import com.nextcloud.sync.models.repository.FolderRepository
 import com.nextcloud.sync.utils.DocumentFileHelper
 import com.nextcloud.sync.utils.FileHashUtil
+import com.nextcloud.sync.utils.PathValidator
 import java.io.File
 
 class SyncController(
@@ -242,7 +243,16 @@ class SyncController(
         // Handle uploads
         plan.toUpload.forEach { localFile ->
             try {
-                val remotePath = "${folder.remotePath}/${localFile.relativePath}"
+                // Validate and sanitize the relative path
+                val sanitizedRelativePath = PathValidator.validateRelativePath(localFile.relativePath)
+                if (sanitizedRelativePath == null) {
+                    Log.w("SyncController", "Skipping upload - invalid relative path: ${localFile.relativePath}")
+                    current++
+                    callback.onSyncProgress(current, total)
+                    return@forEach
+                }
+
+                val remotePath = "${folder.remotePath}/$sanitizedRelativePath"
                 val success: Boolean
 
                 // Check if localPath is a content URI or file path
@@ -297,8 +307,24 @@ class SyncController(
         // Handle downloads
         plan.toDownload.forEach { remoteFile ->
             try {
-                val fileName = remoteFile.path.substringAfterLast('/')
-                val relativePath = remoteFile.path.removePrefix(folder.remotePath).removePrefix("/")
+                // Extract and validate file name from remote path
+                val fileName = PathValidator.extractFileName(remoteFile.path)
+                if (fileName == null) {
+                    Log.w("SyncController", "Skipping download - invalid file name: ${remoteFile.path}")
+                    current++
+                    callback.onSyncProgress(current, total)
+                    return@forEach
+                }
+
+                // Extract and validate relative path
+                val relativePath = PathValidator.extractRelativePath(remoteFile.path, folder.remotePath)
+                if (relativePath == null) {
+                    Log.w("SyncController", "Skipping download - invalid relative path: ${remoteFile.path}")
+                    current++
+                    callback.onSyncProgress(current, total)
+                    return@forEach
+                }
+
                 var success = false
                 var finalLocalPath = ""
                 var lastModified = 0L
@@ -311,7 +337,8 @@ class SyncController(
 
                     if (rootDoc != null) {
                         // Ensure directory structure exists
-                        val pathParts = relativePath.split("/")
+                        // relativePath is already validated by PathValidator
+                        val pathParts = relativePath.split("/").filter { it.isNotEmpty() }
                         val dirPath = pathParts.dropLast(1).joinToString("/")
                         val targetDir = if (dirPath.isEmpty()) {
                             rootDoc
@@ -348,11 +375,23 @@ class SyncController(
                     }
                 } else {
                     // Download to file path
-                    val localPath = "${folder.localPath}/$fileName"
-                    success = webDavClient.downloadFile(remoteFile.path, File(localPath))
+                    // Validate that the final path stays within the sync folder
+                    val validatedPath = PathValidator.validatePathWithinRoot(folder.localPath, relativePath)
+                    if (validatedPath == null) {
+                        Log.w("SyncController", "Skipping download - path escapes sync folder: $relativePath")
+                        current++
+                        callback.onSyncProgress(current, total)
+                        return@forEach
+                    }
+
+                    // Ensure parent directories exist
+                    val targetFile = File(validatedPath)
+                    targetFile.parentFile?.mkdirs()
+
+                    success = webDavClient.downloadFile(remoteFile.path, targetFile)
                     if (success) {
-                        finalLocalPath = localPath
-                        lastModified = File(localPath).lastModified()
+                        finalLocalPath = validatedPath
+                        lastModified = targetFile.lastModified()
                     }
                 }
 

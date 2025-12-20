@@ -14,6 +14,7 @@ import com.nextcloud.sync.models.database.AppDatabase
 import com.nextcloud.sync.models.network.WebDavClient
 import com.nextcloud.sync.models.repository.AccountRepository
 import com.nextcloud.sync.utils.EncryptionUtil
+import com.nextcloud.sync.utils.PathValidator
 import com.nextcloud.sync.views.adapters.RemoteFolderAdapter
 import kotlinx.coroutines.launch
 
@@ -120,11 +121,18 @@ class FileBrowserActivity : AppCompatActivity() {
     }
 
     private fun navigateToFolder(folderName: String) {
+        // Sanitize folder name to prevent directory traversal
+        val sanitizedName = PathValidator.sanitizeFileName(folderName)
+        if (sanitizedName == null) {
+            Snackbar.make(binding.root, "Invalid folder name", Snackbar.LENGTH_SHORT).show()
+            return
+        }
+
         folderStack.add(currentPath)
         currentPath = if (currentPath.endsWith("/")) {
-            "$currentPath$folderName"
+            "$currentPath$sanitizedName"
         } else {
-            "$currentPath/$folderName"
+            "$currentPath/$sanitizedName"
         }
         updatePathDisplay()
         loadFolders()
