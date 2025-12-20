@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="?attr/colorPrimary"
+            android:elevation="4dp"
+            app:popupTheme="@style/ThemeOverlay.Material3.Light"/>
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/spacing_large">
+
+            <!-- Local Folder Section (Read-only) -->
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Local Folder"
+                android:textSize="@dimen/text_size_small"
+                android:textStyle="bold"
+                android:layout_marginBottom="@dimen/spacing_small"/>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardLocalFolder"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/spacing_large"
+                app:cardElevation="2dp"
+                app:cardCornerRadius="8dp"
+                android:clickable="false"
+                android:alpha="0.6">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/spacing_medium">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/textLocalFolder"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="No folder selected"
+                        android:textSize="@dimen/text_size_medium"
+                        android:textStyle="bold"/>
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/textLocalFolderPath"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Storage location"
+                        android:textSize="@dimen/text_size_small"
+                        android:layout_marginTop="@dimen/spacing_tiny"
+                        android:visibility="gone"/>
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Remote Folder Section (Editable) -->
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Remote Folder"
+                android:textSize="@dimen/text_size_small"
+                android:textStyle="bold"
+                android:layout_marginBottom="@dimen/spacing_small"/>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardRemoteFolder"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/spacing_medium"
+                app:cardElevation="2dp"
+                app:cardCornerRadius="8dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/spacing_medium">
+
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/textRemoteFolder"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="/"
+                        android:textSize="@dimen/text_size_medium"
+                        android:textStyle="bold"/>
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonSelectRemoteFolder"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Change Remote Folder"
+                android:textSize="@dimen/text_size_medium"
+                android:layout_marginBottom="@dimen/spacing_large"
+                style="@style/Widget.Material3.Button.OutlinedButton"/>
+
+            <!-- Sync Options Section (Editable) -->
+            <com.google.android.material.textview.MaterialTextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Sync Options"
+                android:textSize="@dimen/text_size_small"
+                android:textStyle="bold"
+                android:layout_marginBottom="@dimen/spacing_small"/>
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/spacing_large"
+                app:cardElevation="2dp"
+                app:cardCornerRadius="8dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/spacing_medium">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <com.google.android.material.textview.MaterialTextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Two-way sync"
+                                android:textSize="@dimen/text_size_medium"
+                                android:textStyle="bold"/>
+
+                            <com.google.android.material.textview.MaterialTextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Upload local changes to server"
+                                android:textSize="@dimen/text_size_small"
+                                android:alpha="0.7"
+                                android:layout_marginTop="@dimen/spacing_tiny"/>
+
+                        </LinearLayout>
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/switchTwoWaySync"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"/>
+
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="?attr/colorOutline"
+                        android:alpha="0.2"
+                        android:layout_marginVertical="@dimen/spacing_medium"/>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <com.google.android.material.textview.MaterialTextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="WiFi only"
+                                android:textSize="@dimen/text_size_medium"
+                                android:textStyle="bold"/>
+
+                            <com.google.android.material.textview.MaterialTextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Only sync when connected to WiFi"
+                                android:textSize="@dimen/text_size_small"
+                                android:alpha="0.7"
+                                android:layout_marginTop="@dimen/spacing_tiny"/>
+
+                        </LinearLayout>
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/switchWifiOnly"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"/>
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Save Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonSave"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Save Changes"
+                android:textSize="@dimen/text_size_medium"
+                style="@style/Widget.Material3.Button"/>
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

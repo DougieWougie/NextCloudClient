@@ -2,15 +2,19 @@ package com.nextcloud.sync.views.adapters
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.widget.PopupMenu
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.nextcloud.sync.R
 import com.nextcloud.sync.databinding.ItemSyncFolderBinding
 import com.nextcloud.sync.models.database.entities.FolderEntity
 import com.nextcloud.sync.utils.UriPathHelper
 
 class SyncFolderAdapter(
     private val onFolderClick: (FolderEntity) -> Unit,
+    private val onSyncClick: (FolderEntity) -> Unit,
+    private val onEditClick: (FolderEntity) -> Unit,
     private val onDeleteClick: (FolderEntity) -> Unit
 ) : ListAdapter<FolderEntity, SyncFolderAdapter.FolderViewHolder>(FolderDiffCallback()) {
 
@@ -20,7 +24,7 @@ class SyncFolderAdapter(
             parent,
             false
         )
-        return FolderViewHolder(binding, onFolderClick, onDeleteClick)
+        return FolderViewHolder(binding, onFolderClick, onSyncClick, onEditClick, onDeleteClick)
     }
 
     override fun onBindViewHolder(holder: FolderViewHolder, position: Int) {
@@ -30,6 +34,8 @@ class SyncFolderAdapter(
     class FolderViewHolder(
         private val binding: ItemSyncFolderBinding,
         private val onFolderClick: (FolderEntity) -> Unit,
+        private val onSyncClick: (FolderEntity) -> Unit,
+        private val onEditClick: (FolderEntity) -> Unit,
         private val onDeleteClick: (FolderEntity) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
 
@@ -51,8 +57,27 @@ class SyncFolderAdapter(
                 onFolderClick(folder)
             }
 
-            binding.buttonDelete.setOnClickListener {
-                onDeleteClick(folder)
+            binding.buttonSync.setOnClickListener {
+                onSyncClick(folder)
+            }
+
+            binding.buttonMenu.setOnClickListener { view ->
+                val popupMenu = PopupMenu(context, view)
+                popupMenu.inflate(R.menu.menu_folder_actions)
+                popupMenu.setOnMenuItemClickListener { menuItem ->
+                    when (menuItem.itemId) {
+                        R.id.action_edit -> {
+                            onEditClick(folder)
+                            true
+                        }
+                        R.id.action_remove -> {
+                            onDeleteClick(folder)
+                            true
+                        }
+                        else -> false
+                    }
+                }
+                popupMenu.show()
             }
         }
     }

@@ -20,7 +20,7 @@
             android:layout_height="wrap_content"
             android:textSize="@dimen/text_size_large"
             android:textStyle="bold"
-            android:textColor="@color/black"/>
+            android:textColor="?attr/colorOnSurface"/>
 
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/textLocalVersion"

@@ -67,6 +67,11 @@
             android:theme="@style/Theme.NextcloudSync" />
 
         <activity
+            android:name=".views.activities.EditFolderActivity"
+            android:exported="false"
+            android:theme="@style/Theme.NextcloudSync" />
+
+        <activity
             android:name=".views.activities.FileBrowserActivity"
             android:exported="false"
             android:theme="@style/Theme.NextcloudSync" />

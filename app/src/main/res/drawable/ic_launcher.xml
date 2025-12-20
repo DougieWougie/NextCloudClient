@@ -5,7 +5,7 @@
     android:viewportWidth="48"
     android:viewportHeight="48">
     <path
-        android:fillColor="@color/nextcloud_blue"
+        android:fillColor="@color/launcher_icon_background"
         android:pathData="M0,0h48v48h-48z" />
     <path
         android:fillColor="@android:color/white"

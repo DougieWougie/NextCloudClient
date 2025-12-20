@@ -4,10 +4,14 @@ import android.app.Application
 import android.util.Log
 import com.nextcloud.sync.models.database.AppDatabase
 import com.nextcloud.sync.services.workers.SyncWorker
+import com.nextcloud.sync.utils.ThemePreference
 
 class Application : Application() {
     override fun onCreate() {
         super.onCreate()
+
+        // Apply saved theme
+        ThemePreference.applySavedTheme(this)
 
         // Initialize database
         AppDatabase.getInstance(this)

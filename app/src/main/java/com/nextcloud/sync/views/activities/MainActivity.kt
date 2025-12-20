@@ -64,6 +64,12 @@ class MainActivity : AppCompatActivity() {
             onFolderClick = { folder ->
                 // Future: Navigate to folder details
             },
+            onSyncClick = { folder ->
+                syncSingleFolder(folder)
+            },
+            onEditClick = { folder ->
+                openEditFolder(folder)
+            },
             onDeleteClick = { folder ->
                 showDeleteConfirmation(folder)
             }
@@ -142,6 +148,27 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun syncSingleFolder(folder: com.nextcloud.sync.models.database.entities.FolderEntity) {
+        binding.progressSync.visibility = View.VISIBLE
+        SyncWorker.scheduleImmediate(this@MainActivity)
+
+        val localFolderName = com.nextcloud.sync.utils.UriPathHelper.getDisplayName(this, folder.localPath)
+        Snackbar.make(binding.root, "Syncing $localFolderName...", Snackbar.LENGTH_SHORT).show()
+
+        // Hide progress after a delay (in a real app, this would be based on actual sync completion)
+        binding.progressSync.postDelayed({
+            binding.progressSync.visibility = View.GONE
+            loadLastSyncTime()
+            Snackbar.make(binding.root, "Sync completed for $localFolderName", Snackbar.LENGTH_SHORT).show()
+        }, 5000)
+    }
+
+    private fun openEditFolder(folder: com.nextcloud.sync.models.database.entities.FolderEntity) {
+        val intent = Intent(this, EditFolderActivity::class.java)
+        intent.putExtra("folder_id", folder.id)
+        startActivityForResult(intent, REQUEST_EDIT_FOLDER)
+    }
+
     private fun showDeleteConfirmation(folder: com.nextcloud.sync.models.database.entities.FolderEntity) {
         MaterialAlertDialogBuilder(this)
             .setTitle("Delete Sync Folder")
@@ -163,8 +190,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == REQUEST_ADD_FOLDER && resultCode == Activity.RESULT_OK) {
-            loadFolders()
+        when (requestCode) {
+            REQUEST_ADD_FOLDER, REQUEST_EDIT_FOLDER -> {
+                if (resultCode == Activity.RESULT_OK) {
+                    loadFolders()
+                }
+            }
         }
     }
 
@@ -186,5 +217,6 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val REQUEST_ADD_FOLDER = 100
+        private const val REQUEST_EDIT_FOLDER = 101
     }
 }

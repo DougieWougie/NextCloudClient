@@ -81,13 +81,35 @@
 
         </LinearLayout>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/buttonDelete"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Remove"
-            android:textSize="12sp"
-            style="@style/Widget.Material3.Button.TextButton"/>
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonSync"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Sync"
+                android:textSize="12sp"
+                style="@style/Widget.Material3.Button.TextButton"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonMenu"
+                android:layout_width="32dp"
+                android:layout_height="wrap_content"
+                android:minWidth="32dp"
+                android:paddingStart="0dp"
+                android:paddingEnd="0dp"
+                android:insetLeft="0dp"
+                android:insetRight="0dp"
+                app:icon="@android:drawable/arrow_down_float"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                style="@style/Widget.Material3.Button.TextButton.Icon"/>
+
+        </LinearLayout>
 
     </LinearLayout>
 

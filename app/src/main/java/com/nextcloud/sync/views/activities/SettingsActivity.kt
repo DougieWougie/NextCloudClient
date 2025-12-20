@@ -10,6 +10,7 @@ import com.nextcloud.sync.databinding.ActivitySettingsBinding
 import com.nextcloud.sync.models.database.AppDatabase
 import com.nextcloud.sync.models.database.entities.AccountEntity
 import com.nextcloud.sync.models.repository.AccountRepository
+import com.nextcloud.sync.utils.ThemePreference
 import kotlinx.coroutines.launch
 
 class SettingsActivity : AppCompatActivity() {
@@ -25,6 +26,7 @@ class SettingsActivity : AppCompatActivity() {
         setupToolbar()
         setupRepository()
         loadAccountDetails()
+        loadThemePreference()
         setupViews()
     }
 
@@ -49,9 +51,18 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
+    private fun loadThemePreference() {
+        val currentTheme = ThemePreference.getThemeMode(this)
+        binding.textCurrentTheme.text = ThemePreference.getThemeDisplayName(currentTheme)
+    }
+
     private fun setupViews() {
         binding.buttonSave.setOnClickListener {
             saveAccountDetails()
+        }
+
+        binding.buttonChangeTheme.setOnClickListener {
+            showThemeDialog()
         }
 
         binding.buttonLogout.setOnClickListener {
@@ -93,6 +104,37 @@ class SettingsActivity : AppCompatActivity() {
                 Snackbar.make(binding.root, "Account updated successfully", Snackbar.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun showThemeDialog() {
+        val currentTheme = ThemePreference.getThemeMode(this)
+        val themeOptions = arrayOf(
+            ThemePreference.getThemeDisplayName(ThemePreference.THEME_AUTO),
+            ThemePreference.getThemeDisplayName(ThemePreference.THEME_LIGHT),
+            ThemePreference.getThemeDisplayName(ThemePreference.THEME_DARK)
+        )
+        val themeValues = arrayOf(
+            ThemePreference.THEME_AUTO,
+            ThemePreference.THEME_LIGHT,
+            ThemePreference.THEME_DARK
+        )
+
+        val currentIndex = when (currentTheme) {
+            ThemePreference.THEME_LIGHT -> 1
+            ThemePreference.THEME_DARK -> 2
+            else -> 0
+        }
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Choose Theme")
+            .setSingleChoiceItems(themeOptions, currentIndex) { dialog, which ->
+                val selectedTheme = themeValues[which]
+                ThemePreference.setThemeMode(this, selectedTheme)
+                loadThemePreference()
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun showLogoutConfirmation() {
