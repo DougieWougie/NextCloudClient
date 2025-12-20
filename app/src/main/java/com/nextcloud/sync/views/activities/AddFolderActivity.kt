@@ -99,12 +99,15 @@ class AddFolderActivity : AppCompatActivity() {
                 Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             )
 
-            selectedLocalPath = uri.toString()
+            val uriString = uri.toString()
+            selectedLocalPath = uriString
 
-            // Extract folder name from URI for display
-            val folderName = DocumentsContract.getTreeDocumentId(uri).split(":").lastOrNull() ?: "Selected Folder"
+            // Get readable folder name using UriPathHelper
+            val folderName = com.nextcloud.sync.utils.UriPathHelper.getDisplayName(this, uriString)
+            val storageLocation = com.nextcloud.sync.utils.UriPathHelper.getStorageLocation(uriString)
+
             binding.textLocalFolder.text = folderName
-            binding.textLocalFolderPath.text = selectedLocalPath
+            binding.textLocalFolderPath.text = storageLocation
             binding.textLocalFolderPath.visibility = android.view.View.VISIBLE
         } catch (e: Exception) {
             Snackbar.make(binding.root, "Failed to select folder: ${e.message}", Snackbar.LENGTH_LONG).show()

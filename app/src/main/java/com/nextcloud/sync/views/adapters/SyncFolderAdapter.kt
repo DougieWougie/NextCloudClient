@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.nextcloud.sync.databinding.ItemSyncFolderBinding
 import com.nextcloud.sync.models.database.entities.FolderEntity
+import com.nextcloud.sync.utils.UriPathHelper
 
 class SyncFolderAdapter(
     private val onFolderClick: (FolderEntity) -> Unit,
@@ -33,8 +34,14 @@ class SyncFolderAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(folder: FolderEntity) {
-            binding.textLocalPath.text = folder.localPath.split(":").lastOrNull() ?: folder.localPath
-            binding.textRemotePath.text = folder.remotePath
+            val context = binding.root.context
+
+            // Get readable local folder name
+            val localFolderName = UriPathHelper.getDisplayName(context, folder.localPath)
+            val storageLocation = UriPathHelper.getStorageLocation(folder.localPath)
+
+            binding.textLocalPath.text = localFolderName
+            binding.textRemotePath.text = "${folder.remotePath} ($storageLocation)"
 
             val syncType = if (folder.twoWaySync) "Two-way sync" else "Download only"
             val wifiOnly = if (folder.wifiOnly) " • WiFi only" else ""

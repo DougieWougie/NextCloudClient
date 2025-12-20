@@ -14,20 +14,28 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="@dimen/spacing_medium">
+        android:orientation="horizontal"
+        android:padding="@dimen/spacing_medium"
+        android:gravity="center_vertical">
 
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:layout_weight="1"
+            android:orientation="vertical">
 
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📱"
+                    android:textSize="16sp"
+                    android:layout_marginEnd="@dimen/spacing_small"/>
 
                 <com.google.android.material.textview.MaterialTextView
                     android:id="@+id/textLocalPath"
@@ -37,32 +45,49 @@
                     android:textSize="@dimen/text_size_medium"
                     android:textStyle="bold"/>
 
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="@dimen/spacing_small">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="☁️"
+                    android:textSize="16sp"
+                    android:layout_marginEnd="@dimen/spacing_small"/>
+
                 <com.google.android.material.textview.MaterialTextView
                     android:id="@+id/textRemotePath"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Remote Path"
-                    android:textSize="@dimen/text_size_small"
-                    android:layout_marginTop="@dimen/spacing_small"/>
-
-                <com.google.android.material.textview.MaterialTextView
-                    android:id="@+id/textSyncInfo"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Sync Info"
-                    android:textSize="@dimen/text_size_small"
-                    android:layout_marginTop="@dimen/spacing_small"/>
+                    android:textSize="@dimen/text_size_small"/>
 
             </LinearLayout>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/buttonDelete"
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/textSyncInfo"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Delete"
-                style="@style/Widget.Material3.Button.TextButton"/>
+                android:text="Sync Info"
+                android:textSize="@dimen/text_size_small"
+                android:layout_marginTop="@dimen/spacing_small"
+                android:alpha="0.7"/>
 
         </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/buttonDelete"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Remove"
+            android:textSize="12sp"
+            style="@style/Widget.Material3.Button.TextButton"/>
 
     </LinearLayout>
 
