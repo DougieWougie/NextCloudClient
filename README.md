@@ -1,6 +1,10 @@
 # Nextcloud Sync - Android Application
 
-A native Android application for synchronizing files between your Android device and Nextcloud server using WebDAV.
+<img src="SyncIcon.png" />
+
+I got tired of the Android NextCloud application refusing to sync and being tempremental, I only need to ability to synchronise, so here we are.
+
+> A native Android application for synchronizing files between your Android device and Nextcloud server using WebDAV.
 
 ## Features
 
