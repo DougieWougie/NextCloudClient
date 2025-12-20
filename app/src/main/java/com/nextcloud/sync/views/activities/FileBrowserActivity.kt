@@ -87,7 +87,7 @@ class FileBrowserActivity : AppCompatActivity() {
 
             val password = EncryptionUtil.decryptPassword(account.passwordEncrypted)
             val authToken = account.authTokenEncrypted?.let { EncryptionUtil.decryptPassword(it) } ?: password
-            webDavClient = WebDavClient(account.serverUrl, account.username, authToken)
+            webDavClient = WebDavClient(this@FileBrowserActivity, account.serverUrl, account.username, authToken)
 
             loadFolders()
         }

@@ -34,7 +34,7 @@ class TwoFactorActivity : AppCompatActivity() {
     private fun setupController() {
         val db = AppDatabase.getInstance(this)
         val accountRepository = AccountRepository(db.accountDao())
-        val nextcloudAuthenticator = NextcloudAuthenticator()
+        val nextcloudAuthenticator = NextcloudAuthenticator(this)
         val rateLimiter = AuthRateLimiter.getInstance(this)
 
         twoFactorController = TwoFactorController(accountRepository, nextcloudAuthenticator, rateLimiter)

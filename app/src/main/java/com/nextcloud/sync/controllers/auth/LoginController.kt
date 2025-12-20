@@ -1,5 +1,6 @@
 package com.nextcloud.sync.controllers.auth
 
+import android.content.Context
 import com.nextcloud.sync.models.database.entities.AccountEntity
 import com.nextcloud.sync.models.network.ConnectionResult
 import com.nextcloud.sync.models.network.WebDavClient
@@ -10,6 +11,7 @@ import com.nextcloud.sync.utils.InputValidator
 import com.nextcloud.sync.utils.RateLimitResult
 
 class LoginController(
+    private val context: Context,
     private val accountRepository: AccountRepository,
     private val rateLimiter: AuthRateLimiter
 ) {
@@ -59,7 +61,7 @@ class LoginController(
         try {
             // Test WebDAV connection
             val normalizedUrl = normalizeServerUrl(serverUrl)
-            val webDavClient = WebDavClient(normalizedUrl, username, password)
+            val webDavClient = WebDavClient(context, normalizedUrl, username, password)
             val connectionResult = webDavClient.testConnection()
 
             when (connectionResult) {

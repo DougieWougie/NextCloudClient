@@ -66,7 +66,7 @@ class WebLoginActivity : AppCompatActivity() {
 
     private fun startLoginFlow() {
         binding.progressBar.visibility = View.VISIBLE
-        loginFlow = NextcloudLoginFlow(serverUrl)
+        loginFlow = NextcloudLoginFlow(this, serverUrl)
 
         lifecycleScope.launch {
             when (val result = loginFlow.initLoginFlow()) {

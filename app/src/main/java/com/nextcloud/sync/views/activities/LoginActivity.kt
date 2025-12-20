@@ -47,7 +47,7 @@ class LoginActivity : AppCompatActivity() {
         accountRepository = AccountRepository(db.accountDao())
         val rateLimiter = AuthRateLimiter.getInstance(this)
 
-        loginController = LoginController(accountRepository, rateLimiter)
+        loginController = LoginController(this, accountRepository, rateLimiter)
     }
 
     private fun setupViews() {

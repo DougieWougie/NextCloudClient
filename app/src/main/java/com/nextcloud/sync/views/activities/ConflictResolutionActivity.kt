@@ -45,7 +45,7 @@ class ConflictResolutionActivity : AppCompatActivity() {
             if (account != null) {
                 val password = EncryptionUtil.decryptPassword(account.passwordEncrypted)
                 val authToken = account.authTokenEncrypted?.let { EncryptionUtil.decryptPassword(it) } ?: password
-                val webDavClient = WebDavClient(account.serverUrl, account.username, authToken)
+                val webDavClient = WebDavClient(this@ConflictResolutionActivity, account.serverUrl, account.username, authToken)
 
                 conflictController = ConflictResolutionController(
                     ConflictRepository(db.conflictDao()),

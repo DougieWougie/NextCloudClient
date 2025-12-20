@@ -61,7 +61,7 @@ class SyncWorker(
             // Create WebDAV client
             val password = EncryptionUtil.decryptPassword(account.passwordEncrypted)
             val authToken = account.authTokenEncrypted?.let { EncryptionUtil.decryptPassword(it) } ?: password
-            val webDavClient = WebDavClient(account.serverUrl, account.username, authToken)
+            val webDavClient = WebDavClient(applicationContext, account.serverUrl, account.username, authToken)
 
             // Get sync-enabled folders
             val folders = folderRepository.getSyncEnabledFolders()

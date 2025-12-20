@@ -1,5 +1,7 @@
 package com.nextcloud.sync.models.network
 
+import android.content.Context
+import com.nextcloud.sync.utils.CertificatePinningHelper
 import com.nextcloud.sync.utils.InputValidator
 import com.nextcloud.sync.utils.SafeLogger
 import kotlinx.coroutines.Dispatchers
@@ -11,11 +13,15 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
-class NextcloudAuthenticator {
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .build()
+class NextcloudAuthenticator(private val context: Context) {
+    private fun createClient(serverUrl: String): OkHttpClient {
+        return CertificatePinningHelper.createPinnedClient(
+            context = context,
+            serverUrl = serverUrl,
+            connectTimeout = 30,
+            readTimeout = 30
+        )
+    }
 
     suspend fun verifyTwoFactor(
         serverUrl: String,
@@ -28,6 +34,7 @@ class NextcloudAuthenticator {
             // 1. Call OCS API with basic auth + OTP header
             // 2. If successful, create app password
 
+            val client = createClient(serverUrl)
             val appPasswordUrl = "$serverUrl/ocs/v2.php/core/apppassword"
 
             val request = Request.Builder()

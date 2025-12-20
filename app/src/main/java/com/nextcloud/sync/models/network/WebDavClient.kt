@@ -1,5 +1,7 @@
 package com.nextcloud.sync.models.network
 
+import android.content.Context
+import com.nextcloud.sync.utils.CertificatePinningHelper
 import com.nextcloud.sync.utils.SafeLogger
 import com.thegrizzlylabs.sardineandroid.Sardine
 import com.thegrizzlylabs.sardineandroid.impl.OkHttpSardine
@@ -14,6 +16,7 @@ import java.util.Date
 import java.util.concurrent.TimeUnit
 
 class WebDavClient(
+    private val context: Context,
     private val serverUrl: String,
     private val username: String,
     private val password: String
@@ -28,10 +31,12 @@ class WebDavClient(
         get() = "$serverUrl/remote.php/dav/files/$username"
 
     private val httpClient: OkHttpClient by lazy {
-        OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .build()
+        CertificatePinningHelper.createPinnedClient(
+            context = context,
+            serverUrl = serverUrl,
+            connectTimeout = 30,
+            readTimeout = 30
+        )
     }
 
     suspend fun testConnection(): ConnectionResult = withContext(Dispatchers.IO) {

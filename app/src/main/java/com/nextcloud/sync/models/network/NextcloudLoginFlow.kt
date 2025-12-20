@@ -1,5 +1,7 @@
 package com.nextcloud.sync.models.network
 
+import android.content.Context
+import com.nextcloud.sync.utils.CertificatePinningHelper
 import com.nextcloud.sync.utils.InputValidator
 import com.nextcloud.sync.utils.SafeLogger
 import kotlinx.coroutines.Dispatchers
@@ -15,12 +17,17 @@ import java.util.concurrent.TimeUnit
  * Implements Nextcloud Login Flow v2
  * See: https://docs.nextcloud.com/server/latest/developer_manual/client_apis/LoginFlow/index.html
  */
-class NextcloudLoginFlow(private val serverUrl: String) {
+class NextcloudLoginFlow(
+    private val context: Context,
+    private val serverUrl: String
+) {
 
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .build()
+    private val client = CertificatePinningHelper.createPinnedClient(
+        context = context,
+        serverUrl = serverUrl,
+        connectTimeout = 30,
+        readTimeout = 30
+    )
 
     data class LoginCredentials(
         val serverUrl: String,
