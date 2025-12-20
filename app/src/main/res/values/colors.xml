@@ -1,101 +1,146 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Material 3 Light Theme Colors -->
-    <!-- Primary -->
-    <color name="md_theme_light_primary">#0062A1</color>
-    <color name="md_theme_light_onPrimary">#FFFFFF</color>
-    <color name="md_theme_light_primaryContainer">#CFE5FF</color>
-    <color name="md_theme_light_onPrimaryContainer">#001D35</color>
-
-    <!-- Secondary -->
-    <color name="md_theme_light_secondary">#526070</color>
-    <color name="md_theme_light_onSecondary">#FFFFFF</color>
-    <color name="md_theme_light_secondaryContainer">#D6E4F7</color>
-    <color name="md_theme_light_onSecondaryContainer">#0F1D2A</color>
-
-    <!-- Tertiary -->
-    <color name="md_theme_light_tertiary">#695779</color>
-    <color name="md_theme_light_onTertiary">#FFFFFF</color>
-    <color name="md_theme_light_tertiaryContainer">#F0D9FF</color>
-    <color name="md_theme_light_onTertiaryContainer">#231532</color>
-
-    <!-- Error -->
-    <color name="md_theme_light_error">#BA1A1A</color>
-    <color name="md_theme_light_errorContainer">#FFDAD6</color>
-    <color name="md_theme_light_onError">#FFFFFF</color>
-    <color name="md_theme_light_onErrorContainer">#410002</color>
-
-    <!-- Background -->
-    <color name="md_theme_light_background">#FCFCFF</color>
-    <color name="md_theme_light_onBackground">#1A1C1E</color>
-
-    <!-- Surface -->
-    <color name="md_theme_light_surface">#FCFCFF</color>
-    <color name="md_theme_light_onSurface">#1A1C1E</color>
-    <color name="md_theme_light_surfaceVariant">#DFE2EB</color>
-    <color name="md_theme_light_onSurfaceVariant">#43474E</color>
-
-    <!-- Outline -->
-    <color name="md_theme_light_outline">#73777F</color>
-    <color name="md_theme_light_outlineVariant">#C3C6CF</color>
-
-    <!-- Inverse -->
-    <color name="md_theme_light_inverseSurface">#2F3033</color>
-    <color name="md_theme_light_inverseOnSurface">#F1F0F4</color>
-    <color name="md_theme_light_inversePrimary">#9CCDFF</color>
-
-    <!-- Surface tints -->
-    <color name="md_theme_light_surfaceTint">#0062A1</color>
-    <color name="md_theme_light_scrim">#000000</color>
-
-    <!-- Material 3 Dark Theme Colors -->
-    <!-- Primary -->
-    <color name="md_theme_dark_primary">#9CCDFF</color>
-    <color name="md_theme_dark_onPrimary">#003257</color>
-    <color name="md_theme_dark_primaryContainer">#00497B</color>
-    <color name="md_theme_dark_onPrimaryContainer">#CFE5FF</color>
-
-    <!-- Secondary -->
-    <color name="md_theme_dark_secondary">#B9C8DA</color>
-    <color name="md_theme_dark_onSecondary">#243240</color>
-    <color name="md_theme_dark_secondaryContainer">#3B4857</color>
-    <color name="md_theme_dark_onSecondaryContainer">#D6E4F7</color>
-
-    <!-- Tertiary -->
-    <color name="md_theme_dark_tertiary">#D4BEE6</color>
-    <color name="md_theme_dark_onTertiary">#392A48</color>
-    <color name="md_theme_dark_tertiaryContainer">#504060</color>
-    <color name="md_theme_dark_onTertiaryContainer">#F0D9FF</color>
-
-    <!-- Error -->
-    <color name="md_theme_dark_error">#FFB4AB</color>
-    <color name="md_theme_dark_errorContainer">#93000A</color>
-    <color name="md_theme_dark_onError">#690005</color>
-    <color name="md_theme_dark_onErrorContainer">#FFDAD6</color>
-
-    <!-- Background -->
-    <color name="md_theme_dark_background">#1A1C1E</color>
-    <color name="md_theme_dark_onBackground">#E2E2E5</color>
-
-    <!-- Surface -->
-    <color name="md_theme_dark_surface">#1A1C1E</color>
-    <color name="md_theme_dark_onSurface">#E2E2E5</color>
-    <color name="md_theme_dark_surfaceVariant">#43474E</color>
-    <color name="md_theme_dark_onSurfaceVariant">#C3C6CF</color>
-
-    <!-- Outline -->
-    <color name="md_theme_dark_outline">#8D9199</color>
-    <color name="md_theme_dark_outlineVariant">#43474E</color>
-
-    <!-- Inverse -->
-    <color name="md_theme_dark_inverseSurface">#E2E2E5</color>
-    <color name="md_theme_dark_inverseOnSurface">#1A1C1E</color>
-    <color name="md_theme_dark_inversePrimary">#0062A1</color>
-
-    <!-- Surface tints -->
-    <color name="md_theme_dark_surfaceTint">#9CCDFF</color>
-    <color name="md_theme_dark_scrim">#000000</color>
-
-    <!-- Static colors for launcher icons and other non-themed elements -->
-    <color name="launcher_icon_background">#0062A1</color>
+    <color name="launcher_icon_background">#FFFFFF</color>
+    <color name="md_theme_primary">#8F4953</color>
+    <color name="md_theme_onPrimary">#FFFFFF</color>
+    <color name="md_theme_primaryContainer">#FFD9DC</color>
+    <color name="md_theme_onPrimaryContainer">#72333C</color>
+    <color name="md_theme_secondary">#765659</color>
+    <color name="md_theme_onSecondary">#FFFFFF</color>
+    <color name="md_theme_secondaryContainer">#FFD9DC</color>
+    <color name="md_theme_onSecondaryContainer">#5C3F42</color>
+    <color name="md_theme_tertiary">#785830</color>
+    <color name="md_theme_onTertiary">#FFFFFF</color>
+    <color name="md_theme_tertiaryContainer">#FFDDB7</color>
+    <color name="md_theme_onTertiaryContainer">#5E411B</color>
+    <color name="md_theme_error">#BA1A1A</color>
+    <color name="md_theme_onError">#FFFFFF</color>
+    <color name="md_theme_errorContainer">#FFDAD6</color>
+    <color name="md_theme_onErrorContainer">#93000A</color>
+    <color name="md_theme_background">#FFF8F7</color>
+    <color name="md_theme_onBackground">#22191A</color>
+    <color name="md_theme_surface">#FFF8F7</color>
+    <color name="md_theme_onSurface">#22191A</color>
+    <color name="md_theme_surfaceVariant">#F4DDDE</color>
+    <color name="md_theme_onSurfaceVariant">#524344</color>
+    <color name="md_theme_outline">#847374</color>
+    <color name="md_theme_outlineVariant">#D7C1C3</color>
+    <color name="md_theme_scrim">#000000</color>
+    <color name="md_theme_inverseSurface">#382E2F</color>
+    <color name="md_theme_inverseOnSurface">#FFEDED</color>
+    <color name="md_theme_inversePrimary">#FFB2BA</color>
+    <color name="md_theme_primaryFixed">#FFD9DC</color>
+    <color name="md_theme_onPrimaryFixed">#3B0713</color>
+    <color name="md_theme_primaryFixedDim">#FFB2BA</color>
+    <color name="md_theme_onPrimaryFixedVariant">#72333C</color>
+    <color name="md_theme_secondaryFixed">#FFD9DC</color>
+    <color name="md_theme_onSecondaryFixed">#2C1518</color>
+    <color name="md_theme_secondaryFixedDim">#E5BDC0</color>
+    <color name="md_theme_onSecondaryFixedVariant">#5C3F42</color>
+    <color name="md_theme_tertiaryFixed">#FFDDB7</color>
+    <color name="md_theme_onTertiaryFixed">#2A1700</color>
+    <color name="md_theme_tertiaryFixedDim">#E9BF8F</color>
+    <color name="md_theme_onTertiaryFixedVariant">#5E411B</color>
+    <color name="md_theme_surfaceDim">#E7D6D7</color>
+    <color name="md_theme_surfaceBright">#FFF8F7</color>
+    <color name="md_theme_surfaceContainerLowest">#FFFFFF</color>
+    <color name="md_theme_surfaceContainerLow">#FFF0F0</color>
+    <color name="md_theme_surfaceContainer">#FCEAEA</color>
+    <color name="md_theme_surfaceContainerHigh">#F6E4E5</color>
+    <color name="md_theme_surfaceContainerHighest">#F0DEDF</color>
+    <color name="md_theme_primary_mediumContrast">#5D222C</color>
+    <color name="md_theme_onPrimary_mediumContrast">#FFFFFF</color>
+    <color name="md_theme_primaryContainer_mediumContrast">#A05861</color>
+    <color name="md_theme_onPrimaryContainer_mediumContrast">#FFFFFF</color>
+    <color name="md_theme_secondary_mediumContrast">#4A2F32</color>
+    <color name="md_theme_onSecondary_mediumContrast">#FFFFFF</color>
+    <color name="md_theme_secondaryContainer_mediumContrast">#866568</color>
+    <color name="md_theme_onSecondaryContainer_mediumContrast">#FFFFFF</color>
+    <color name="md_theme_tertiary_mediumContrast">#4B310C</color>
+    <color name="md_theme_onTertiary_mediumContrast">#FFFFFF</color>
+    <color name="md_theme_tertiaryContainer_mediumContrast">#88673D</color>
+    <color name="md_theme_onTertiaryContainer_mediumContrast">#FFFFFF</color>
+    <color name="md_theme_error_mediumContrast">#740006</color>
+    <color name="md_theme_onError_mediumContrast">#FFFFFF</color>
+    <color name="md_theme_errorContainer_mediumContrast">#CF2C27</color>
+    <color name="md_theme_onErrorContainer_mediumContrast">#FFFFFF</color>
+    <color name="md_theme_background_mediumContrast">#FFF8F7</color>
+    <color name="md_theme_onBackground_mediumContrast">#22191A</color>
+    <color name="md_theme_surface_mediumContrast">#FFF8F7</color>
+    <color name="md_theme_onSurface_mediumContrast">#170F10</color>
+    <color name="md_theme_surfaceVariant_mediumContrast">#F4DDDE</color>
+    <color name="md_theme_onSurfaceVariant_mediumContrast">#413334</color>
+    <color name="md_theme_outline_mediumContrast">#5E4F50</color>
+    <color name="md_theme_outlineVariant_mediumContrast">#7A696A</color>
+    <color name="md_theme_scrim_mediumContrast">#000000</color>
+    <color name="md_theme_inverseSurface_mediumContrast">#382E2F</color>
+    <color name="md_theme_inverseOnSurface_mediumContrast">#FFEDED</color>
+    <color name="md_theme_inversePrimary_mediumContrast">#FFB2BA</color>
+    <color name="md_theme_primaryFixed_mediumContrast">#A05861</color>
+    <color name="md_theme_onPrimaryFixed_mediumContrast">#FFFFFF</color>
+    <color name="md_theme_primaryFixedDim_mediumContrast">#83404A</color>
+    <color name="md_theme_onPrimaryFixedVariant_mediumContrast">#FFFFFF</color>
+    <color name="md_theme_secondaryFixed_mediumContrast">#866568</color>
+    <color name="md_theme_onSecondaryFixed_mediumContrast">#FFFFFF</color>
+    <color name="md_theme_secondaryFixedDim_mediumContrast">#6B4D50</color>
+    <color name="md_theme_onSecondaryFixedVariant_mediumContrast">#FFFFFF</color>
+    <color name="md_theme_tertiaryFixed_mediumContrast">#88673D</color>
+    <color name="md_theme_onTertiaryFixed_mediumContrast">#FFFFFF</color>
+    <color name="md_theme_tertiaryFixedDim_mediumContrast">#6D4F28</color>
+    <color name="md_theme_onTertiaryFixedVariant_mediumContrast">#FFFFFF</color>
+    <color name="md_theme_surfaceDim_mediumContrast">#D3C3C3</color>
+    <color name="md_theme_surfaceBright_mediumContrast">#FFF8F7</color>
+    <color name="md_theme_surfaceContainerLowest_mediumContrast">#FFFFFF</color>
+    <color name="md_theme_surfaceContainerLow_mediumContrast">#FFF0F0</color>
+    <color name="md_theme_surfaceContainer_mediumContrast">#F6E4E5</color>
+    <color name="md_theme_surfaceContainerHigh_mediumContrast">#EAD9D9</color>
+    <color name="md_theme_surfaceContainerHighest_mediumContrast">#DFCECE</color>
+    <color name="md_theme_primary_highContrast">#511823</color>
+    <color name="md_theme_onPrimary_highContrast">#FFFFFF</color>
+    <color name="md_theme_primaryContainer_highContrast">#75353F</color>
+    <color name="md_theme_onPrimaryContainer_highContrast">#FFFFFF</color>
+    <color name="md_theme_secondary_highContrast">#3F2528</color>
+    <color name="md_theme_onSecondary_highContrast">#FFFFFF</color>
+    <color name="md_theme_secondaryContainer_highContrast">#5F4144</color>
+    <color name="md_theme_onSecondaryContainer_highContrast">#FFFFFF</color>
+    <color name="md_theme_tertiary_highContrast">#3F2704</color>
+    <color name="md_theme_onTertiary_highContrast">#FFFFFF</color>
+    <color name="md_theme_tertiaryContainer_highContrast">#60441D</color>
+    <color name="md_theme_onTertiaryContainer_highContrast">#FFFFFF</color>
+    <color name="md_theme_error_highContrast">#600004</color>
+    <color name="md_theme_onError_highContrast">#FFFFFF</color>
+    <color name="md_theme_errorContainer_highContrast">#98000A</color>
+    <color name="md_theme_onErrorContainer_highContrast">#FFFFFF</color>
+    <color name="md_theme_background_highContrast">#FFF8F7</color>
+    <color name="md_theme_onBackground_highContrast">#22191A</color>
+    <color name="md_theme_surface_highContrast">#FFF8F7</color>
+    <color name="md_theme_onSurface_highContrast">#000000</color>
+    <color name="md_theme_surfaceVariant_highContrast">#F4DDDE</color>
+    <color name="md_theme_onSurfaceVariant_highContrast">#000000</color>
+    <color name="md_theme_outline_highContrast">#36292A</color>
+    <color name="md_theme_outlineVariant_highContrast">#554547</color>
+    <color name="md_theme_scrim_highContrast">#000000</color>
+    <color name="md_theme_inverseSurface_highContrast">#382E2F</color>
+    <color name="md_theme_inverseOnSurface_highContrast">#FFFFFF</color>
+    <color name="md_theme_inversePrimary_highContrast">#FFB2BA</color>
+    <color name="md_theme_primaryFixed_highContrast">#75353F</color>
+    <color name="md_theme_onPrimaryFixed_highContrast">#FFFFFF</color>
+    <color name="md_theme_primaryFixedDim_highContrast">#591F29</color>
+    <color name="md_theme_onPrimaryFixedVariant_highContrast">#FFFFFF</color>
+    <color name="md_theme_secondaryFixed_highContrast">#5F4144</color>
+    <color name="md_theme_onSecondaryFixed_highContrast">#FFFFFF</color>
+    <color name="md_theme_secondaryFixedDim_highContrast">#462B2E</color>
+    <color name="md_theme_onSecondaryFixedVariant_highContrast">#FFFFFF</color>
+    <color name="md_theme_tertiaryFixed_highContrast">#60441D</color>
+    <color name="md_theme_onTertiaryFixed_highContrast">#FFFFFF</color>
+    <color name="md_theme_tertiaryFixedDim_highContrast">#472D09</color>
+    <color name="md_theme_onTertiaryFixedVariant_highContrast">#FFFFFF</color>
+    <color name="md_theme_surfaceDim_highContrast">#C5B5B6</color>
+    <color name="md_theme_surfaceBright_highContrast">#FFF8F7</color>
+    <color name="md_theme_surfaceContainerLowest_highContrast">#FFFFFF</color>
+    <color name="md_theme_surfaceContainerLow_highContrast">#FFEDED</color>
+    <color name="md_theme_surfaceContainer_highContrast">#F0DEDF</color>
+    <color name="md_theme_surfaceContainerHigh_highContrast">#E1D0D1</color>
+    <color name="md_theme_surfaceContainerHighest_highContrast">#D3C3C3</color>
 </resources>
+
