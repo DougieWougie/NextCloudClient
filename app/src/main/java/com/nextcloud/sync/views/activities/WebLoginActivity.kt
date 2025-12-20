@@ -125,8 +125,9 @@ class WebLoginActivity : AppCompatActivity() {
         // Deactivate all existing accounts
         accountRepository.deactivateAllAccounts()
 
-        // Encrypt the app password
+        // Encrypt the app password and auth token
         val encryptedPassword = EncryptionUtil.encryptPassword(credentials.appPassword)
+        val encryptedAuthToken = EncryptionUtil.encryptPassword(credentials.appPassword)
 
         // Create new account
         val account = AccountEntity(
@@ -134,7 +135,7 @@ class WebLoginActivity : AppCompatActivity() {
             username = credentials.loginName,
             passwordEncrypted = encryptedPassword,
             twoFactorEnabled = false, // Already handled via web login
-            authToken = credentials.appPassword,
+            authTokenEncrypted = encryptedAuthToken,
             isActive = true
         )
 

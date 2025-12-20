@@ -21,8 +21,8 @@ data class AccountEntity(
     @ColumnInfo(name = "two_factor_enabled")
     val twoFactorEnabled: Boolean = false,
 
-    @ColumnInfo(name = "auth_token")
-    val authToken: String? = null, // App password or session token
+    @ColumnInfo(name = "auth_token_encrypted")
+    val authTokenEncrypted: String? = null, // Encrypted app password or session token
 
     @ColumnInfo(name = "is_active")
     val isActive: Boolean = true,

@@ -44,9 +44,10 @@ class TwoFactorController(
 
             when (result) {
                 is TwoFactorResult.Success -> {
-                    // Update account with auth token
+                    // Encrypt and update account with auth token
+                    val encryptedAuthToken = EncryptionUtil.encryptPassword(result.appPassword)
                     val updatedAccount = account.copy(
-                        authToken = result.appPassword,
+                        authTokenEncrypted = encryptedAuthToken,
                         isActive = true
                     )
                     accountRepository.updateAccount(updatedAccount)
