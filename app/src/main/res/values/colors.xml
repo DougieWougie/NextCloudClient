@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="launcher_icon_background">#FFFFFF</color>
+    <color name="launcher_icon_background">#8F4953</color>
     <color name="md_theme_primary">#8F4953</color>
     <color name="md_theme_onPrimary">#FFFFFF</color>
     <color name="md_theme_primaryContainer">#FFD9DC</color>
