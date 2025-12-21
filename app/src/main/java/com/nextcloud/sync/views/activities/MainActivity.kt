@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -29,6 +30,22 @@ class MainActivity : AppCompatActivity() {
     private lateinit var folderRepository: FolderRepository
     private lateinit var accountRepository: AccountRepository
     private lateinit var folderAdapter: SyncFolderAdapter
+
+    private val addFolderLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            loadFolders()
+        }
+    }
+
+    private val editFolderLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            loadFolders()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -86,7 +103,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.buttonAddFolder.setOnClickListener {
             val intent = Intent(this, AddFolderActivity::class.java)
-            startActivityForResult(intent, REQUEST_ADD_FOLDER)
+            addFolderLauncher.launch(intent)
         }
     }
 
@@ -181,7 +198,7 @@ class MainActivity : AppCompatActivity() {
     private fun openEditFolder(folder: com.nextcloud.sync.models.database.entities.FolderEntity) {
         val intent = Intent(this, EditFolderActivity::class.java)
         intent.putExtra("folder_id", folder.id)
-        startActivityForResult(intent, REQUEST_EDIT_FOLDER)
+        editFolderLauncher.launch(intent)
     }
 
     private fun showDeleteConfirmation(folder: com.nextcloud.sync.models.database.entities.FolderEntity) {
@@ -204,17 +221,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        when (requestCode) {
-            REQUEST_ADD_FOLDER, REQUEST_EDIT_FOLDER -> {
-                if (resultCode == Activity.RESULT_OK) {
-                    loadFolders()
-                }
-            }
-        }
-    }
-
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_main, menu)
         return true
@@ -234,10 +240,5 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         _binding = null
-    }
-
-    companion object {
-        private const val REQUEST_ADD_FOLDER = 100
-        private const val REQUEST_EDIT_FOLDER = 101
     }
 }

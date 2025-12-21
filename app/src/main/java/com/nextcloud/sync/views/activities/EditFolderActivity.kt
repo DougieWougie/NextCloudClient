@@ -3,6 +3,7 @@ package com.nextcloud.sync.views.activities
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
@@ -19,6 +20,15 @@ class EditFolderActivity : AppCompatActivity() {
 
     private var folderId: Long = 0
     private var selectedRemotePath: String = "/"
+
+    private val remoteFolderPicker = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            selectedRemotePath = result.data?.getStringExtra("selected_path") ?: "/"
+            binding.textRemoteFolder.text = selectedRemotePath
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -98,7 +108,7 @@ class EditFolderActivity : AppCompatActivity() {
     private fun openFileBrowser() {
         val intent = Intent(this, FileBrowserActivity::class.java)
         intent.putExtra("current_path", selectedRemotePath)
-        startActivityForResult(intent, REQUEST_REMOTE_FOLDER)
+        remoteFolderPicker.launch(intent)
     }
 
     private fun saveChanges() {
@@ -120,14 +130,6 @@ class EditFolderActivity : AppCompatActivity() {
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == REQUEST_REMOTE_FOLDER && resultCode == Activity.RESULT_OK) {
-            selectedRemotePath = data?.getStringExtra("selected_path") ?: "/"
-            binding.textRemoteFolder.text = selectedRemotePath
-        }
-    }
-
     override fun onSupportNavigateUp(): Boolean {
         finish()
         return true
@@ -136,9 +138,5 @@ class EditFolderActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         _binding = null
-    }
-
-    companion object {
-        private const val REQUEST_REMOTE_FOLDER = 100
     }
 }

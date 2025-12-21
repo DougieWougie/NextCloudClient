@@ -36,6 +36,15 @@ class AddFolderActivity : AppCompatActivity() {
         }
     }
 
+    private val remoteFolderPicker = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            selectedRemotePath = result.data?.getStringExtra("selected_path") ?: "/"
+            binding.textRemoteFolder.text = selectedRemotePath
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         _binding = ActivityAddFolderBinding.inflate(layoutInflater)
@@ -118,15 +127,7 @@ class AddFolderActivity : AppCompatActivity() {
     private fun openFileBrowser() {
         val intent = Intent(this, FileBrowserActivity::class.java)
         intent.putExtra("current_path", selectedRemotePath)
-        startActivityForResult(intent, REQUEST_REMOTE_FOLDER)
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == REQUEST_REMOTE_FOLDER && resultCode == Activity.RESULT_OK) {
-            selectedRemotePath = data?.getStringExtra("selected_path") ?: "/"
-            binding.textRemoteFolder.text = selectedRemotePath
-        }
+        remoteFolderPicker.launch(intent)
     }
 
     private fun addFolder() {
@@ -168,9 +169,5 @@ class AddFolderActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         _binding = null
-    }
-
-    companion object {
-        private const val REQUEST_REMOTE_FOLDER = 100
     }
 }

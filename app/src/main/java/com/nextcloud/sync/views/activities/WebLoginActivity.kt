@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.View
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -42,6 +43,7 @@ class WebLoginActivity : AppCompatActivity() {
 
         setupRepository()
         setupWebView()
+        setupBackPressedHandler()
         startLoginFlow()
     }
 
@@ -62,6 +64,19 @@ class WebLoginActivity : AppCompatActivity() {
                 binding.progressBar.visibility = View.GONE
             }
         }
+    }
+
+    private fun setupBackPressedHandler() {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (_binding?.webView?.canGoBack() == true) {
+                    _binding?.webView?.goBack()
+                } else {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                }
+            }
+        })
     }
 
     private fun startLoginFlow() {
@@ -161,14 +176,6 @@ class WebLoginActivity : AppCompatActivity() {
             .show()
     }
 
-    override fun onBackPressed() {
-        if (_binding?.webView?.canGoBack() == true) {
-            _binding?.webView?.goBack()
-        } else {
-            super.onBackPressed()
-        }
-    }
-
     override fun onDestroy() {
         super.onDestroy()
         // Properly clean up WebView to prevent memory leaks
@@ -178,7 +185,6 @@ class WebLoginActivity : AppCompatActivity() {
             clearCache(true)
             onPause()
             removeAllViews()
-            destroyDrawingCache()
             destroy()
         }
         _binding = null

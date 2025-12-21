@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -39,6 +40,7 @@ class FileBrowserActivity : AppCompatActivity() {
         setupRepository()
         setupRecyclerView()
         setupViews()
+        setupBackPressedHandler()
         loadAccount()
     }
 
@@ -74,6 +76,19 @@ class FileBrowserActivity : AppCompatActivity() {
         binding.fabCreateFolder.setOnClickListener {
             showCreateFolderDialog()
         }
+    }
+
+    private fun setupBackPressedHandler() {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (folderStack.isNotEmpty()) {
+                    navigateUp()
+                } else {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                }
+            }
+        })
     }
 
     private fun loadAccount() {
@@ -165,14 +180,6 @@ class FileBrowserActivity : AppCompatActivity() {
     override fun onSupportNavigateUp(): Boolean {
         finish()
         return true
-    }
-
-    override fun onBackPressed() {
-        if (folderStack.isNotEmpty()) {
-            navigateUp()
-        } else {
-            super.onBackPressed()
-        }
     }
 
     private fun showCreateFolderDialog() {
