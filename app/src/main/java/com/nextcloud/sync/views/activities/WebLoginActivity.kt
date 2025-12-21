@@ -56,6 +56,17 @@ class WebLoginActivity : AppCompatActivity() {
         binding.webView.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
+
+            // Optimize WebView to reduce memory usage and ashmem warnings
+            cacheMode = android.webkit.WebSettings.LOAD_NO_CACHE
+            @Suppress("DEPRECATION")
+            databaseEnabled = false
+            setGeolocationEnabled(false)
+            setSupportMultipleWindows(false)
+
+            // Disable unused features to reduce memory footprint
+            @Suppress("DEPRECATION")
+            saveFormData = false
         }
 
         binding.webView.webViewClient = object : WebViewClient() {

@@ -183,14 +183,19 @@ class FileBrowserActivity : AppCompatActivity() {
     }
 
     private fun showCreateFolderDialog() {
-        val editText = android.widget.EditText(this).apply {
-            hint = "Folder name"
-            setPadding(50, 40, 50, 40)
+        val textInputLayout = com.google.android.material.textfield.TextInputLayout(this).apply {
+            setPadding(50, 20, 50, 0)
         }
+
+        val editText = com.google.android.material.textfield.TextInputEditText(textInputLayout.context).apply {
+            hint = "Folder name"
+        }
+
+        textInputLayout.addView(editText)
 
         MaterialAlertDialogBuilder(this)
             .setTitle("Create New Folder")
-            .setView(editText)
+            .setView(textInputLayout)
             .setPositiveButton("Create") { _, _ ->
                 val folderName = editText.text.toString().trim()
                 if (folderName.isNotEmpty()) {
