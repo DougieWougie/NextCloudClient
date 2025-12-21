@@ -132,21 +132,25 @@ class MainActivity : AppCompatActivity() {
                     binding.root,
                     "No folders configured. Add a folder to sync.",
                     Snackbar.LENGTH_LONG
-                ).show()
+                ).setAnchorView(binding.fabSync).show()
                 return@launch
             }
 
             _binding?.progressSync?.visibility = View.VISIBLE
             SyncWorker.scheduleImmediate(this@MainActivity)
-            Snackbar.make(binding.root, "Sync started for ${folders.size} folder(s)", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(binding.root, "Sync started for ${folders.size} folder(s)", Snackbar.LENGTH_SHORT)
+                .setAnchorView(binding.fabSync).show()
 
             // Hide progress after a delay using lifecycle-aware coroutine
             lifecycleScope.launch {
                 kotlinx.coroutines.delay(5000)
                 _binding?.progressSync?.visibility = View.GONE
                 loadLastSyncTime()
-                _binding?.root?.let {
-                    Snackbar.make(it, "Sync completed", Snackbar.LENGTH_SHORT).show()
+                _binding?.root?.let { root ->
+                    _binding?.fabSync?.let { fab ->
+                        Snackbar.make(root, "Sync completed", Snackbar.LENGTH_SHORT)
+                            .setAnchorView(fab).show()
+                    }
                 }
             }
         }
@@ -157,15 +161,19 @@ class MainActivity : AppCompatActivity() {
         SyncWorker.scheduleImmediate(this@MainActivity)
 
         val localFolderName = com.nextcloud.sync.utils.UriPathHelper.getDisplayName(this, folder.localPath)
-        Snackbar.make(binding.root, "Syncing $localFolderName...", Snackbar.LENGTH_SHORT).show()
+        Snackbar.make(binding.root, "Syncing $localFolderName...", Snackbar.LENGTH_SHORT)
+            .setAnchorView(binding.fabSync).show()
 
         // Hide progress after a delay using lifecycle-aware coroutine
         lifecycleScope.launch {
             kotlinx.coroutines.delay(5000)
             _binding?.progressSync?.visibility = View.GONE
             loadLastSyncTime()
-            _binding?.root?.let {
-                Snackbar.make(it, "Sync completed for $localFolderName", Snackbar.LENGTH_SHORT).show()
+            _binding?.root?.let { root ->
+                _binding?.fabSync?.let { fab ->
+                    Snackbar.make(root, "Sync completed for $localFolderName", Snackbar.LENGTH_SHORT)
+                        .setAnchorView(fab).show()
+                }
             }
         }
     }
@@ -191,7 +199,8 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             folderRepository.delete(folder)
             loadFolders()
-            Snackbar.make(binding.root, "Folder removed from sync", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(binding.root, "Folder removed from sync", Snackbar.LENGTH_SHORT)
+                .setAnchorView(binding.fabSync).show()
         }
     }
 

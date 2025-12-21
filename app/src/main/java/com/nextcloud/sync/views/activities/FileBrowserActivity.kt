@@ -80,7 +80,8 @@ class FileBrowserActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val account = accountRepository.getActiveAccount()
             if (account == null) {
-                Snackbar.make(binding.root, "No active account found", Snackbar.LENGTH_LONG).show()
+                Snackbar.make(binding.root, "No active account found", Snackbar.LENGTH_LONG)
+                    .setAnchorView(binding.fabCreateFolder).show()
                 finish()
                 return@launch
             }
@@ -116,7 +117,8 @@ class FileBrowserActivity : AppCompatActivity() {
 
             } catch (e: Exception) {
                 binding.progressBar.visibility = View.GONE
-                Snackbar.make(binding.root, "Failed to load folders: ${e.message}", Snackbar.LENGTH_LONG).show()
+                Snackbar.make(binding.root, "Failed to load folders: ${e.message}", Snackbar.LENGTH_LONG)
+                    .setAnchorView(binding.fabCreateFolder).show()
             }
         }
     }
@@ -125,7 +127,8 @@ class FileBrowserActivity : AppCompatActivity() {
         // Sanitize folder name to prevent directory traversal
         val sanitizedName = PathValidator.sanitizeFileName(folderName)
         if (sanitizedName == null) {
-            Snackbar.make(binding.root, "Invalid folder name", Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(binding.root, "Invalid folder name", Snackbar.LENGTH_SHORT)
+                .setAnchorView(binding.fabCreateFolder).show()
             return
         }
 
@@ -186,7 +189,8 @@ class FileBrowserActivity : AppCompatActivity() {
                 if (folderName.isNotEmpty()) {
                     createFolder(folderName)
                 } else {
-                    Snackbar.make(binding.root, "Folder name cannot be empty", Snackbar.LENGTH_SHORT).show()
+                    Snackbar.make(binding.root, "Folder name cannot be empty", Snackbar.LENGTH_SHORT)
+                        .setAnchorView(binding.fabCreateFolder).show()
                 }
             }
             .setNegativeButton("Cancel", null)
@@ -209,14 +213,17 @@ class FileBrowserActivity : AppCompatActivity() {
                 binding.progressBar.visibility = View.GONE
 
                 if (success) {
-                    Snackbar.make(binding.root, "Folder created successfully", Snackbar.LENGTH_SHORT).show()
+                    Snackbar.make(binding.root, "Folder created successfully", Snackbar.LENGTH_SHORT)
+                        .setAnchorView(binding.fabCreateFolder).show()
                     loadFolders() // Reload to show the new folder
                 } else {
-                    Snackbar.make(binding.root, "Failed to create folder", Snackbar.LENGTH_LONG).show()
+                    Snackbar.make(binding.root, "Failed to create folder", Snackbar.LENGTH_LONG)
+                        .setAnchorView(binding.fabCreateFolder).show()
                 }
             } catch (e: Exception) {
                 binding.progressBar.visibility = View.GONE
-                Snackbar.make(binding.root, "Error: ${e.message}", Snackbar.LENGTH_LONG).show()
+                Snackbar.make(binding.root, "Error: ${e.message}", Snackbar.LENGTH_LONG)
+                    .setAnchorView(binding.fabCreateFolder).show()
             }
         }
     }

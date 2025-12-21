@@ -104,6 +104,7 @@ app/schemas/
 # Planning files
 PLAN.md
 TODO.md
+CLAUDE.md
 
 # Mac files
 .DS_Store
