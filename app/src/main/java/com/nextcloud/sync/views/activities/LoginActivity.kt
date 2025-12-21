@@ -27,10 +27,13 @@ class LoginActivity : AppCompatActivity() {
 
         setupController()
         checkExistingAccount()
-        setupViews()
     }
 
     private fun checkExistingAccount() {
+        // Hide login form initially while checking for existing account
+        binding.layoutLoginForm.visibility = View.GONE
+        binding.progressBar.visibility = View.VISIBLE
+
         lifecycleScope.launch {
             val activeAccount = accountRepository.getActiveAccount()
             if (activeAccount != null) {
@@ -38,6 +41,11 @@ class LoginActivity : AppCompatActivity() {
                 val intent = Intent(this@LoginActivity, MainActivity::class.java)
                 startActivity(intent)
                 finish()
+            } else {
+                // No account found, show login form
+                binding.progressBar.visibility = View.GONE
+                binding.layoutLoginForm.visibility = View.VISIBLE
+                setupViews()
             }
         }
     }

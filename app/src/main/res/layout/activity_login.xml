@@ -7,6 +7,31 @@
     android:fitsSystemWindows="true"
     android:padding="@dimen/spacing_large">
 
+    <!-- Material3 loading indicator shown while checking for existing account -->
+    <com.google.android.material.progressindicator.CircularProgressIndicator
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:indeterminate="true"
+        android:visibility="gone"
+        style="@style/Widget.Material3.CircularProgressIndicator.Medium"
+        app:indicatorColor="?attr/colorPrimary"
+        app:trackColor="?attr/colorSurfaceVariant"
+        app:trackThickness="4dp"
+        app:indicatorSize="48dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- Login form container -->
+    <androidx.constraintlayout.widget.Group
+        android:id="@+id/layoutLoginForm"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="visible"
+        app:constraint_referenced_ids="textTitle,textDescription,textInputLayoutServerUrl,buttonLogin"/>
+
     <com.google.android.material.textview.MaterialTextView
         android:id="@+id/textTitle"
         android:layout_width="wrap_content"
