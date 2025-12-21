@@ -21,8 +21,18 @@ class WebDavClient(
     private val username: String,
     private val password: String
 ) {
+    private val sardineHttpClient: OkHttpClient by lazy {
+        CertificatePinningHelper.createPinnedClient(
+            context = context,
+            serverUrl = serverUrl,
+            connectTimeout = 30,
+            readTimeout = 120,  // Increased for large file downloads
+            writeTimeout = 120  // Increased for large file uploads
+        )
+    }
+
     private val sardine: Sardine by lazy {
-        OkHttpSardine().apply {
+        OkHttpSardine(sardineHttpClient).apply {
             setCredentials(username, password)
         }
     }
