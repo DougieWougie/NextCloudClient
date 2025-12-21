@@ -49,4 +49,24 @@
         <item name="colorSurfaceContainerHigh">@color/md_theme_surfaceContainerHigh</item>
         <item name="colorSurfaceContainerHighest">@color/md_theme_surfaceContainerHighest</item>
     </style>
+
+    <!-- Split Button Styles -->
+    <style name="Widget.Material3.Button.SplitButton" parent="Widget.Material3.Button">
+        <item name="shapeAppearance">@style/ShapeAppearance.Material3.Corner.Small.Start</item>
+    </style>
+
+    <style name="Widget.Material3.Button.SplitButton.Icon" parent="Widget.Material3.Button">
+        <item name="shapeAppearance">@style/ShapeAppearance.Material3.Corner.Small.End</item>
+    </style>
+
+    <!-- Shape Appearances for Split Buttons -->
+    <style name="ShapeAppearance.Material3.Corner.Small.Start" parent="ShapeAppearance.Material3.Corner.Small">
+        <item name="cornerSizeTopRight">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+
+    <style name="ShapeAppearance.Material3.Corner.Small.End" parent="ShapeAppearance.Material3.Corner.Small">
+        <item name="cornerSizeTopLeft">0dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+    </style>
 </resources>

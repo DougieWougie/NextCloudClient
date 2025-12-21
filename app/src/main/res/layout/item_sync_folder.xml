@@ -85,7 +85,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:gravity="center_vertical"
+            android:divider="@android:color/transparent"
+            android:dividerPadding="0dp"
+            android:showDividers="none">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/buttonSync"
@@ -93,21 +96,22 @@
                 android:layout_height="wrap_content"
                 android:text="Sync"
                 android:textSize="12sp"
-                style="@style/Widget.Material3.Button.TextButton"/>
+                android:insetRight="0dp"
+                style="@style/Widget.Material3.Button.SplitButton"/>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/buttonMenu"
-                android:layout_width="32dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:minWidth="32dp"
-                android:paddingStart="0dp"
-                android:paddingEnd="0dp"
+                android:minWidth="0dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
                 android:insetLeft="0dp"
-                android:insetRight="0dp"
+                android:layout_marginStart="-1dp"
                 app:icon="@android:drawable/arrow_down_float"
                 app:iconGravity="textStart"
                 app:iconPadding="0dp"
-                style="@style/Widget.Material3.Button.TextButton.Icon"/>
+                style="@style/Widget.Material3.Button.SplitButton.Icon"/>
 
         </LinearLayout>
 
