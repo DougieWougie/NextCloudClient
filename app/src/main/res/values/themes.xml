@@ -71,4 +71,17 @@
         <item name="cornerSizeTopLeft">0dp</item>
         <item name="cornerSizeBottomLeft">0dp</item>
     </style>
+
+    <!-- Split Button Corner Styles (Left/Right) -->
+    <style name="ShapeAppearance.Material3.Corner.Left" parent="ShapeAppearance.Material3.Corner.Medium">
+        <item name="cornerSizeTopRight">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+        <item name="cornerFamily">rounded</item>
+    </style>
+
+    <style name="ShapeAppearance.Material3.Corner.Right" parent="ShapeAppearance.Material3.Corner.Medium">
+        <item name="cornerSizeTopLeft">0dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerFamily">rounded</item>
+    </style>
 </resources>

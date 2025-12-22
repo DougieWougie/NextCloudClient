@@ -64,6 +64,19 @@ class SyncFolderAdapter(
             binding.buttonMenu.setOnClickListener { view ->
                 val popupMenu = PopupMenu(context, view)
                 popupMenu.inflate(R.menu.menu_folder_actions)
+
+                // Force show icons in popup menu
+                try {
+                    val fieldMPopup = PopupMenu::class.java.getDeclaredField("mPopup")
+                    fieldMPopup.isAccessible = true
+                    val mPopup = fieldMPopup.get(popupMenu)
+                    mPopup.javaClass
+                        .getDeclaredMethod("setForceShowIcon", Boolean::class.java)
+                        .invoke(mPopup, true)
+                } catch (e: Exception) {
+                    // Ignore if reflection fails
+                }
+
                 popupMenu.setOnMenuItemClickListener { menuItem ->
                     when (menuItem.itemId) {
                         R.id.action_edit -> {

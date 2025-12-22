@@ -33,36 +33,73 @@
             android:orientation="vertical"
             android:padding="@dimen/spacing_medium">
 
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="wrap_content"
+            <!-- Server Section -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Nextcloud Server"
-                android:textSize="@dimen/text_size_large"
-                android:textStyle="bold"
-                android:layout_marginBottom="@dimen/spacing_small"/>
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="@dimen/spacing_small">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_cloud_24"
+                    android:tint="?attr/colorPrimary"
+                    android:contentDescription="Server"
+                    android:layout_marginEnd="@dimen/spacing_small"/>
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Nextcloud Server"
+                    android:textAppearance="?attr/textAppearanceTitleMedium"
+                    android:fontFamily="sans-serif-medium"/>
+
+            </LinearLayout>
 
             <com.google.android.material.textview.MaterialTextView
                 android:id="@+id/textServerUrl"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Loading..."
-                android:textSize="@dimen/text_size_medium"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textColor="?attr/colorOnSurfaceVariant"
                 android:layout_marginBottom="@dimen/spacing_large"/>
 
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="wrap_content"
+            <!-- Local Folder Section -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Local Folder"
-                android:textSize="@dimen/text_size_large"
-                android:textStyle="bold"
-                android:layout_marginBottom="@dimen/spacing_small"/>
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="@dimen/spacing_small">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_smartphone_24"
+                    android:tint="?attr/colorPrimary"
+                    android:contentDescription="Local folder"
+                    android:layout_marginEnd="@dimen/spacing_small"/>
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Local Folder"
+                    android:textAppearance="?attr/textAppearanceTitleMedium"
+                    android:fontFamily="sans-serif-medium"/>
+
+            </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="@dimen/spacing_small"
-                app:cardElevation="2dp"
-                app:cardCornerRadius="8dp">
+                style="@style/Widget.Material3.CardView.Outlined"
+                app:cardElevation="0dp"
+                app:strokeWidth="1dp"
+                app:cardCornerRadius="12dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -75,15 +112,16 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="No folder selected"
-                        android:textSize="@dimen/text_size_medium"
-                        android:textStyle="bold"/>
+                        android:textAppearance="?attr/textAppearanceBodyLarge"
+                        android:fontFamily="sans-serif-medium"/>
 
                     <com.google.android.material.textview.MaterialTextView
                         android:id="@+id/textLocalFolderPath"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text=""
-                        android:textSize="@dimen/text_size_small"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"
                         android:layout_marginTop="@dimen/spacing_small"
                         android:visibility="gone"/>
 
@@ -97,22 +135,43 @@
                 android:layout_height="wrap_content"
                 android:text="Select Local Folder"
                 android:layout_marginBottom="@dimen/spacing_large"
-                style="@style/Widget.Material3.Button.OutlinedButton"/>
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                app:icon="@drawable/ic_smartphone_24"
+                app:iconGravity="start"/>
 
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="wrap_content"
+            <!-- Remote Folder Section -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Nextcloud Folder"
-                android:textSize="@dimen/text_size_large"
-                android:textStyle="bold"
-                android:layout_marginBottom="@dimen/spacing_small"/>
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="@dimen/spacing_small">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_cloud_24"
+                    android:tint="?attr/colorSecondary"
+                    android:contentDescription="Nextcloud folder"
+                    android:layout_marginEnd="@dimen/spacing_small"/>
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Nextcloud Folder"
+                    android:textAppearance="?attr/textAppearanceTitleMedium"
+                    android:fontFamily="sans-serif-medium"/>
+
+            </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="@dimen/spacing_small"
-                app:cardElevation="2dp"
-                app:cardCornerRadius="8dp">
+                style="@style/Widget.Material3.CardView.Outlined"
+                app:cardElevation="0dp"
+                app:strokeWidth="1dp"
+                app:cardCornerRadius="12dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -125,8 +184,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="/"
-                        android:textSize="@dimen/text_size_medium"
-                        android:textStyle="bold"/>
+                        android:textAppearance="?attr/textAppearanceBodyLarge"
+                        android:fontFamily="sans-serif-medium"/>
 
                 </LinearLayout>
 
@@ -138,7 +197,9 @@
                 android:layout_height="wrap_content"
                 android:text="Select Nextcloud Folder"
                 android:layout_marginBottom="@dimen/spacing_large"
-                style="@style/Widget.Material3.Button.OutlinedButton"/>
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                app:icon="@drawable/ic_cloud_24"
+                app:iconGravity="start"/>
 
             <com.google.android.material.divider.MaterialDivider
                 android:layout_width="match_parent"
@@ -146,13 +207,30 @@
                 android:layout_marginTop="@dimen/spacing_small"
                 android:layout_marginBottom="@dimen/spacing_medium"/>
 
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="wrap_content"
+            <!-- Sync Options Section -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Sync Options"
-                android:textSize="@dimen/text_size_large"
-                android:textStyle="bold"
-                android:layout_marginBottom="@dimen/spacing_medium"/>
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="@dimen/spacing_medium">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_sync_24"
+                    android:tint="?attr/colorPrimary"
+                    android:contentDescription="Sync options"
+                    android:layout_marginEnd="@dimen/spacing_small"/>
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Sync Options"
+                    android:textAppearance="?attr/textAppearanceTitleMedium"
+                    android:fontFamily="sans-serif-medium"/>
+
+            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -171,14 +249,15 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Two-way sync"
-                        android:textSize="@dimen/text_size_medium"
-                        android:textStyle="bold"/>
+                        android:textAppearance="?attr/textAppearanceBodyLarge"
+                        android:fontFamily="sans-serif-medium"/>
 
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Sync changes both ways"
-                        android:textSize="@dimen/text_size_small"/>
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"/>
 
                 </LinearLayout>
 
@@ -206,14 +285,15 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="WiFi only"
-                        android:textSize="@dimen/text_size_medium"
-                        android:textStyle="bold"/>
+                        android:textAppearance="?attr/textAppearanceBodyLarge"
+                        android:fontFamily="sans-serif-medium"/>
 
                     <com.google.android.material.textview.MaterialTextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Only sync when connected to WiFi"
-                        android:textSize="@dimen/text_size_small"/>
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"/>
 
                 </LinearLayout>
 
@@ -229,7 +309,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Add Folder"
-                android:layout_marginTop="@dimen/spacing_medium"/>
+                android:layout_marginTop="@dimen/spacing_medium"
+                app:icon="@drawable/ic_folder_24"
+                app:iconGravity="start"/>
 
         </LinearLayout>
 

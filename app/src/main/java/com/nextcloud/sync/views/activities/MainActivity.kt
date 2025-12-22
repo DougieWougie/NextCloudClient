@@ -116,10 +116,10 @@ class MainActivity : AppCompatActivity() {
 
                 if (folders.isEmpty()) {
                     binding.recyclerFolders.visibility = View.GONE
-                    binding.textEmptyState.visibility = View.VISIBLE
+                    binding.layoutEmptyState.visibility = View.VISIBLE
                 } else {
                     binding.recyclerFolders.visibility = View.VISIBLE
-                    binding.textEmptyState.visibility = View.GONE
+                    binding.layoutEmptyState.visibility = View.GONE
                 }
             }
         }
