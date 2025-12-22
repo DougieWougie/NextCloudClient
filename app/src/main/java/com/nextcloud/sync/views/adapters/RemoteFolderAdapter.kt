@@ -1,10 +1,12 @@
 package com.nextcloud.sync.views.adapters
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.nextcloud.sync.R
 import com.nextcloud.sync.databinding.ItemRemoteFolderBinding
 import com.nextcloud.sync.views.activities.FileBrowserActivity
 
@@ -32,9 +34,21 @@ class RemoteFolderAdapter(
 
         fun bind(folder: FileBrowserActivity.FolderItem) {
             binding.textFolderName.text = folder.name
+
+            // Set folder icon (Material Icon instead of emoji)
+            binding.iconFolder.setImageResource(R.drawable.ic_folder_24)
+
+            // Path hint is hidden by default (for future enhancement)
+            binding.textFolderPath.visibility = View.GONE
+
+            // Click handler
             binding.root.setOnClickListener {
                 onFolderClick(folder)
             }
+
+            // Ensure ripple effect works
+            binding.root.isClickable = true
+            binding.root.isFocusable = true
         }
     }
 

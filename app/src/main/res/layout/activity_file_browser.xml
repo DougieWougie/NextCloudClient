@@ -7,105 +7,172 @@
     android:fitsSystemWindows="true">
 
     <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:fitsSystemWindows="true"
         android:theme="@style/ThemeOverlay.Material3.Dark.ActionBar">
 
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar"
+        <com.google.android.material.appbar.CollapsingToolbarLayout
+            android:id="@+id/collapsingToolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorPrimary"
-            app:popupTheme="@style/ThemeOverlay.Material3.Light"
-            app:title="Select Folder"/>
+            android:layout_height="wrap_content"
+            app:layout_scrollFlags="scroll|exitUntilCollapsed|snap"
+            app:contentScrim="?attr/colorPrimary"
+            app:expandedTitleMarginStart="16dp"
+            app:expandedTitleMarginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingTop="?attr/actionBarSize"
+                android:paddingBottom="@dimen/spacing_medium"
+                app:layout_collapseMode="parallax">
+
+                <androidx.appcompat.widget.SearchView
+                    android:id="@+id/searchView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/spacing_medium"
+                    android:layout_marginEnd="@dimen/spacing_medium"
+                    android:layout_marginTop="@dimen/spacing_small"
+                    android:background="@android:color/white"
+                    android:elevation="2dp"
+                    app:queryHint="Search folders..."
+                    app:iconifiedByDefault="false"/>
+
+            </LinearLayout>
+
+            <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                android:background="?attr/colorPrimary"
+                app:popupTheme="@style/ThemeOverlay.Material3.Light"
+                app:title="Select Folder"
+                app:navigationIcon="@drawable/ic_arrow_back_24"
+                app:layout_collapseMode="pin"/>
+
+        </com.google.android.material.appbar.CollapsingToolbarLayout>
+
+        <!-- Breadcrumb Navigation (Pinned) -->
+        <HorizontalScrollView
+            android:id="@+id/breadcrumbScrollView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:background="?attr/colorSurface"
+            android:elevation="1dp"
+            android:paddingVertical="8dp">
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chipGroupBreadcrumbs"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingStart="@dimen/spacing_medium"
+                android:paddingEnd="@dimen/spacing_medium"
+                app:singleLine="true"
+                app:chipSpacing="4dp"/>
+
+        </HorizontalScrollView>
 
     </com.google.android.material.appbar.AppBarLayout>
 
-    <LinearLayout
+    <!-- Main Content Area -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        android:layout_marginBottom="80dp">
 
-        <LinearLayout
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerFolders"
             android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingTop="@dimen/spacing_small"
+            android:paddingBottom="@dimen/spacing_small"
+            android:visibility="gone"/>
+
+        <com.google.android.material.progressindicator.CircularProgressIndicator
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:indeterminate="true"
+            android:visibility="visible"/>
+
+        <!-- Enhanced Empty State -->
+        <LinearLayout
+            android:id="@+id/layoutEmptyState"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
             android:orientation="vertical"
-            android:background="?attr/colorSurface"
-            android:padding="@dimen/spacing_medium">
+            android:gravity="center"
+            android:padding="@dimen/spacing_medium"
+            android:visibility="gone">
 
-            <com.google.android.material.textview.MaterialTextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Current Path"
-                android:textSize="@dimen/text_size_small"
-                android:textStyle="bold"/>
-
-            <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/textCurrentPath"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="/"
-                android:textSize="@dimen/text_size_medium"
-                android:layout_marginTop="@dimen/spacing_small"/>
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/buttonParentFolder"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Go Up"
-                android:layout_marginTop="@dimen/spacing_small"
-                style="@style/Widget.Material3.Button.TextButton"/>
-
-        </LinearLayout>
-
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1">
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recyclerFolders"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:visibility="gone"/>
-
-            <com.google.android.material.progressindicator.CircularProgressIndicator
-                android:id="@+id/progressBar"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:indeterminate="true"
-                android:visibility="visible"/>
+            <ImageView
+                android:id="@+id/iconEmptyState"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:src="@drawable/ic_folder_off_24"
+                android:tint="?attr/colorOnSurfaceVariant"
+                android:alpha="0.6"
+                android:contentDescription="No folders"/>
 
             <com.google.android.material.textview.MaterialTextView
                 android:id="@+id/textEmptyState"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
+                android:layout_marginTop="@dimen/spacing_medium"
                 android:text="No folders found"
                 android:textSize="@dimen/text_size_medium"
-                android:visibility="gone"/>
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:gravity="center"/>
 
-        </FrameLayout>
+        </LinearLayout>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/buttonSelectFolder"
+    </FrameLayout>
+
+    <!-- Bottom App Bar with Embedded FAB -->
+    <com.google.android.material.bottomappbar.BottomAppBar
+        android:id="@+id/bottomAppBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        app:fabCradleMargin="8dp"
+        app:fabCradleRoundedCornerRadius="16dp"
+        app:fabAlignmentMode="end">
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Select This Folder"
-            android:layout_margin="@dimen/spacing_medium"/>
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="8dp"
+            android:paddingEnd="72dp">
 
-    </LinearLayout>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonSelectFolder"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Select This Folder"
+                style="@style/Widget.Material3.Button.TonalButton"/>
+
+        </LinearLayout>
+
+    </com.google.android.material.bottomappbar.BottomAppBar>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabCreateFolder"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="@dimen/spacing_medium"
+        app:layout_anchor="@id/bottomAppBar"
         android:contentDescription="Create Folder"
-        app:srcCompat="@android:drawable/ic_input_add"/>
+        app:srcCompat="@drawable/ic_create_new_folder_24"/>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

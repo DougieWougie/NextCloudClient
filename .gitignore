@@ -102,9 +102,9 @@ secrets.properties
 app/schemas/
 
 # Planning files
-PLAN.md
+PLAN_v1.md
 TODO.md
 CLAUDE.md
-
+PLAN_v2.md
 # Mac files
 .DS_Store

@@ -1,8 +1,11 @@
 package com.nextcloud.sync.views.activities
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.view.View
+import android.webkit.SslErrorHandler
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.OnBackPressedCallback
@@ -17,6 +20,7 @@ import com.nextcloud.sync.models.network.LoginFlowPollResult
 import com.nextcloud.sync.models.network.NextcloudLoginFlow
 import com.nextcloud.sync.models.repository.AccountRepository
 import com.nextcloud.sync.utils.EncryptionUtil
+import com.nextcloud.sync.utils.SafeLogger
 import kotlinx.coroutines.launch
 
 class WebLoginActivity : AppCompatActivity() {
@@ -57,11 +61,21 @@ class WebLoginActivity : AppCompatActivity() {
             javaScriptEnabled = true
             domStorageEnabled = true
 
+            // Security: Disable file access to prevent file:// URL vulnerabilities
+            allowFileAccess = false
+            allowContentAccess = false
+            setGeolocationEnabled(false)
+
+            // Security: Disable file access from file URLs (XSS protection)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+                allowFileAccessFromFileURLs = false
+                allowUniversalAccessFromFileURLs = false
+            }
+
             // Optimize WebView to reduce memory usage and ashmem warnings
             cacheMode = android.webkit.WebSettings.LOAD_NO_CACHE
             @Suppress("DEPRECATION")
             databaseEnabled = false
-            setGeolocationEnabled(false)
             setSupportMultipleWindows(false)
 
             // Disable unused features to reduce memory footprint
@@ -73,6 +87,51 @@ class WebLoginActivity : AppCompatActivity() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 binding.progressBar.visibility = View.GONE
+            }
+
+            // Security: Handle SSL errors - NEVER proceed on SSL errors
+            @Deprecated("Deprecated in Java")
+            override fun onReceivedSslError(
+                view: WebView?,
+                handler: SslErrorHandler?,
+                error: android.net.http.SslError?
+            ) {
+                // CRITICAL: Always cancel on SSL errors - NEVER call handler.proceed()
+                handler?.cancel()
+
+                SafeLogger.e("WebLoginActivity", "SSL certificate validation failed")
+
+                showError("SSL certificate validation failed. The connection is not secure. Please check your server configuration.")
+                finish()
+            }
+
+            // Security: Validate URLs before loading to prevent navigation to malicious sites
+            override fun shouldOverrideUrlLoading(
+                view: WebView?,
+                request: WebResourceRequest?
+            ): Boolean {
+                val url = request?.url?.toString() ?: return true
+
+                // Only allow navigation to URLs from the configured server
+                if (!url.startsWith(serverUrl)) {
+                    SafeLogger.w("WebLoginActivity", "Blocked navigation to external URL")
+                    return true // Block navigation
+                }
+
+                return false // Allow navigation to server URLs
+            }
+
+            @Deprecated("Deprecated in Java")
+            override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
+                if (url == null) return true
+
+                // Only allow navigation to URLs from the configured server
+                if (!url.startsWith(serverUrl)) {
+                    SafeLogger.w("WebLoginActivity", "Blocked navigation to external URL")
+                    return true // Block navigation
+                }
+
+                return false // Allow navigation to server URLs
             }
         }
     }
