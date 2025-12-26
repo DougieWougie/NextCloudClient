@@ -104,6 +104,13 @@ fun MainScreen(
                         onDismissRequest = { menuExpanded = false }
                     ) {
                         DropdownMenuItem(
+                            text = { Text("Add Folder") },
+                            onClick = {
+                                menuExpanded = false
+                                navController.navigate(Screen.AddFolder.route)
+                            }
+                        )
+                        DropdownMenuItem(
                             text = { Text("Settings") },
                             onClick = {
                                 menuExpanded = false

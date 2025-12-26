@@ -3,6 +3,8 @@ package com.nextcloud.sync.ui.navigation
 import android.content.Context
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -136,15 +138,27 @@ fun NavGraph(
         ) { backStackEntry ->
             val folderId = backStackEntry.arguments?.getLong("folderId") ?: 0L
             val folderRepository = FolderRepository(db.folderDao())
-            val viewModel = EditFolderViewModel(folderId, folderRepository, context)
 
-            // Observe result from FileBrowser
-            val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
-            savedStateHandle?.getLiveData<String>("selected_path")?.observe(
-                androidx.compose.ui.platform.LocalLifecycleOwner.current
-            ) { selectedPath ->
-                viewModel.onEvent(EditFolderEvent.RemotePathSelected(selectedPath))
-                savedStateHandle.remove<String>("selected_path")
+            // Use viewModel with factory to properly scope the ViewModel
+            // This ensures the ViewModel survives navigation to FileBrowser and back
+            val viewModel: EditFolderViewModel = viewModel(
+                factory = object : ViewModelProvider.Factory {
+                    @Suppress("UNCHECKED_CAST")
+                    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                        return EditFolderViewModel(folderId, folderRepository, context) as T
+                    }
+                }
+            )
+
+            // Observe result from FileBrowser using LaunchedEffect
+            val savedStateHandle = backStackEntry.savedStateHandle
+            androidx.compose.runtime.LaunchedEffect(savedStateHandle) {
+                savedStateHandle.getStateFlow<String?>("selected_path", null).collect { selectedPath ->
+                    selectedPath?.let {
+                        viewModel.onEvent(EditFolderEvent.RemotePathSelected(it))
+                        savedStateHandle.remove<String>("selected_path")
+                    }
+                }
             }
 
             EditFolderScreen(
@@ -157,17 +171,29 @@ fun NavGraph(
         }
 
         // Add Folder Screen
-        composable(Screen.AddFolder.route) {
+        composable(Screen.AddFolder.route) { backStackEntry ->
             val folderRepository = FolderRepository(db.folderDao())
-            val viewModel = AddFolderViewModel(folderRepository, accountRepository, context)
 
-            // Observe result from FileBrowser
-            val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
-            savedStateHandle?.getLiveData<String>("selected_path")?.observe(
-                androidx.compose.ui.platform.LocalLifecycleOwner.current
-            ) { selectedPath ->
-                viewModel.onEvent(AddFolderEvent.RemotePathSelected(selectedPath))
-                savedStateHandle.remove<String>("selected_path")
+            // Use viewModel with factory to properly scope the ViewModel
+            // This ensures the ViewModel survives navigation to FileBrowser and back
+            val viewModel: AddFolderViewModel = viewModel(
+                factory = object : ViewModelProvider.Factory {
+                    @Suppress("UNCHECKED_CAST")
+                    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                        return AddFolderViewModel(folderRepository, accountRepository, context) as T
+                    }
+                }
+            )
+
+            // Observe result from FileBrowser using LaunchedEffect
+            val savedStateHandle = backStackEntry.savedStateHandle
+            androidx.compose.runtime.LaunchedEffect(savedStateHandle) {
+                savedStateHandle.getStateFlow<String?>("selected_path", null).collect { selectedPath ->
+                    selectedPath?.let {
+                        viewModel.onEvent(AddFolderEvent.RemotePathSelected(it))
+                        savedStateHandle.remove<String>("selected_path")
+                    }
+                }
             }
 
             AddFolderScreen(
