@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nextcloud.sync.models.repository.AccountRepository
+import com.nextcloud.sync.utils.DefaultFolderPreference
 import com.nextcloud.sync.utils.ThemePreference
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,8 +15,10 @@ import kotlinx.coroutines.launch
 data class SettingsUiState(
     val serverUrl: String = "",
     val username: String = "",
+    val defaultFolderName: String = "Nextcloud",
     val serverUrlError: String? = null,
     val usernameError: String? = null,
+    val defaultFolderNameError: String? = null,
     val currentTheme: String = ThemePreference.THEME_AUTO,
     val isLoading: Boolean = true,
     val showThemeDialog: Boolean = false,
@@ -27,6 +30,7 @@ data class SettingsUiState(
 sealed class SettingsEvent {
     data class ServerUrlChanged(val url: String) : SettingsEvent()
     data class UsernameChanged(val username: String) : SettingsEvent()
+    data class DefaultFolderNameChanged(val folderName: String) : SettingsEvent()
     object SaveClicked : SettingsEvent()
     object ChangeThemeClicked : SettingsEvent()
     data class ThemeSelected(val theme: String) : SettingsEvent()
@@ -59,7 +63,10 @@ class SettingsViewModel(
             is SettingsEvent.UsernameChanged -> {
                 _uiState.update { it.copy(username = event.username, usernameError = null) }
             }
-            is SettingsEvent.SaveClicked -> saveAccountDetails()
+            is SettingsEvent.DefaultFolderNameChanged -> {
+                _uiState.update { it.copy(defaultFolderName = event.folderName, defaultFolderNameError = null) }
+            }
+            is SettingsEvent.SaveClicked -> saveSettings()
             is SettingsEvent.ChangeThemeClicked -> {
                 _uiState.update { it.copy(showThemeDialog = true) }
             }
@@ -91,6 +98,7 @@ class SettingsViewModel(
     private fun loadSettings() {
         viewModelScope.launch {
             val currentTheme = ThemePreference.getThemeMode(context)
+            val defaultFolderName = DefaultFolderPreference.getDefaultFolderName(context)
             val account = accountRepository.getActiveAccount()
 
             if (account != null) {
@@ -99,6 +107,7 @@ class SettingsViewModel(
                     it.copy(
                         serverUrl = account.serverUrl,
                         username = account.username,
+                        defaultFolderName = defaultFolderName,
                         currentTheme = currentTheme,
                         isLoading = false
                     )
@@ -106,6 +115,7 @@ class SettingsViewModel(
             } else {
                 _uiState.update {
                     it.copy(
+                        defaultFolderName = defaultFolderName,
                         currentTheme = currentTheme,
                         isLoading = false
                     )
@@ -114,9 +124,10 @@ class SettingsViewModel(
         }
     }
 
-    private fun saveAccountDetails() {
+    private fun saveSettings() {
         val serverUrl = _uiState.value.serverUrl.trim()
         val username = _uiState.value.username.trim()
+        val defaultFolderName = _uiState.value.defaultFolderName.trim()
 
         // Validation
         var hasError = false
@@ -126,6 +137,13 @@ class SettingsViewModel(
         }
         if (username.isEmpty()) {
             _uiState.update { it.copy(usernameError = "Username is required") }
+            hasError = true
+        }
+        if (defaultFolderName.isEmpty()) {
+            _uiState.update { it.copy(defaultFolderNameError = "Default folder name is required") }
+            hasError = true
+        } else if (!defaultFolderName.matches(Regex("^[a-zA-Z0-9_\\- ]+$"))) {
+            _uiState.update { it.copy(defaultFolderNameError = "Only letters, numbers, spaces, hyphens and underscores allowed") }
             hasError = true
         }
 
@@ -139,6 +157,10 @@ class SettingsViewModel(
         }
 
         viewModelScope.launch {
+            // Save default folder name preference
+            DefaultFolderPreference.setDefaultFolderName(context, defaultFolderName)
+
+            // Save account details
             val account = accountRepository.getActiveAccount()
             account?.let {
                 val updatedAccount = it.copy(
@@ -149,7 +171,7 @@ class SettingsViewModel(
                 _uiState.update { state ->
                     state.copy(
                         serverUrl = normalizedUrl.trimEnd('/'),
-                        successMessage = "Account updated successfully"
+                        successMessage = "Settings saved successfully"
                     )
                 }
             }

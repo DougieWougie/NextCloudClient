@@ -143,6 +143,38 @@ fun SettingsScreen(
                     isError = uiState.usernameError != null,
                     supportingText = uiState.usernameError?.let { { Text(it) } },
                     keyboardOptions = KeyboardOptions(
+                        imeAction = ImeAction.Next
+                    ),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                HorizontalDivider()
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Sync Settings Section
+                Text(
+                    text = "Sync Settings",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = uiState.defaultFolderName,
+                    onValueChange = {
+                        viewModel.onEvent(SettingsEvent.DefaultFolderNameChanged(it))
+                    },
+                    label = { Text("Default Local Folder Name") },
+                    isError = uiState.defaultFolderNameError != null,
+                    supportingText = uiState.defaultFolderNameError?.let { { Text(it) } } ?: {
+                        Text("Default name for automatically created local folders")
+                    },
+                    keyboardOptions = KeyboardOptions(
                         imeAction = ImeAction.Done
                     ),
                     singleLine = true,

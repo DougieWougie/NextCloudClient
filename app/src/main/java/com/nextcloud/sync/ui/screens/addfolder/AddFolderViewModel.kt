@@ -8,12 +8,14 @@ import androidx.lifecycle.viewModelScope
 import com.nextcloud.sync.models.database.entities.FolderEntity
 import com.nextcloud.sync.models.repository.AccountRepository
 import com.nextcloud.sync.models.repository.FolderRepository
+import com.nextcloud.sync.utils.DefaultFolderPreference
 import com.nextcloud.sync.utils.UriPathHelper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.File
 
 data class AddFolderUiState(
     val serverUrl: String = "",
@@ -59,6 +61,10 @@ class AddFolderViewModel(
             is AddFolderEvent.LocalFolderSelected -> handleLocalFolderSelection(event.uri, event.context)
             is AddFolderEvent.RemotePathSelected -> {
                 _uiState.update { it.copy(selectedRemotePath = event.path) }
+                // Auto-select local folder if none selected yet
+                if (_uiState.value.selectedLocalPath == null) {
+                    autoSelectLocalFolder(event.path)
+                }
             }
             is AddFolderEvent.SelectRemoteFolderClicked -> {
                 // Navigation handled by screen
@@ -133,6 +139,54 @@ class AddFolderViewModel(
         } catch (e: Exception) {
             _uiState.update {
                 it.copy(errorMessage = "Failed to select folder: ${e.message}")
+            }
+        }
+    }
+
+    private fun autoSelectLocalFolder(remotePath: String) {
+        try {
+            // Extract subfolder name from remote path (e.g., "/Photos" -> "Photos")
+            val pathParts = remotePath.trim('/').split('/')
+            val subfolder = if (pathParts.size == 1 && pathParts[0].isEmpty()) {
+                null // Root path "/"
+            } else {
+                pathParts.lastOrNull()
+            }
+
+            // Create path using default folder preference
+            val fullPath = if (subfolder.isNullOrBlank()) {
+                DefaultFolderPreference.getDefaultFolderPath(context)
+            } else {
+                DefaultFolderPreference.getDefaultFolderPath(context, subfolder)
+            }
+
+            // Create the directory if it doesn't exist
+            val folder = File(fullPath)
+            if (!folder.exists()) {
+                val created = folder.mkdirs()
+                if (!created && !folder.exists()) {
+                    _uiState.update {
+                        it.copy(errorMessage = "Failed to create local folder")
+                    }
+                    return
+                }
+            }
+
+            // Use file path directly (app's external files directory doesn't need content URI)
+            // This will work with the sync logic which handles both content:// and file paths
+            val folderName = folder.name
+            val storageLocation = "App Storage"
+
+            _uiState.update {
+                it.copy(
+                    selectedLocalPath = fullPath,
+                    localFolderName = folderName,
+                    localFolderStorageLocation = storageLocation
+                )
+            }
+        } catch (e: Exception) {
+            _uiState.update {
+                it.copy(errorMessage = "Failed to auto-select local folder: ${e.message}")
             }
         }
     }
