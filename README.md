@@ -1,6 +1,6 @@
 # Nextcloud Sync - Android Application
 
-<img src="SyncIcon.png" />
+<img src="SyncIcon.png" width="200px"/>
 
 A native Android application for synchronizing files between your Android device and Nextcloud server using WebDAV.
 
