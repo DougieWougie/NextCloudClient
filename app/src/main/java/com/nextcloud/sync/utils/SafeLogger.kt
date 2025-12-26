@@ -146,18 +146,74 @@ object SafeLogger {
     }
 
     /**
-     * Sanitize potential authentication tokens and passwords
+     * Sanitize potential authentication tokens and passwords.
+     *
+     * SECURITY IMPROVEMENTS:
+     * - Catches shorter tokens (20+ chars instead of 32+)
+     * - Detects base64-encoded strings
+     * - Recognizes Nextcloud app passwords
+     * - Catches JWT tokens
+     * - Handles various encoding formats
      */
     private fun sanitizeTokens(message: String): String {
         var sanitized = message
 
         // Look for patterns like "password=xxx" or "token=xxx"
         sanitized = sanitized.replace(
-            Regex("(password|passwd|pwd|token|auth|key|secret)[=:\\s]+[^\\s,}&]+", RegexOption.IGNORE_CASE),
+            Regex("(password|passwd|pwd|token|auth|key|secret|bearer|authorization)[=:\\s]+[^\\s,}&]+", RegexOption.IGNORE_CASE),
             "$1=[REDACTED]"
         )
 
-        // Sanitize long alphanumeric strings that might be tokens (32+ chars)
+        // Sanitize Authorization headers (e.g., "Authorization: Bearer xxx")
+        sanitized = sanitized.replace(
+            Regex("Authorization:\\s*Bearer\\s+[^\\s]+", RegexOption.IGNORE_CASE),
+            "Authorization: Bearer [REDACTED]"
+        )
+        sanitized = sanitized.replace(
+            Regex("Authorization:\\s*Basic\\s+[^\\s]+", RegexOption.IGNORE_CASE),
+            "Authorization: Basic [REDACTED]"
+        )
+
+        // Sanitize JWT tokens (format: xxx.yyy.zzz)
+        sanitized = sanitized.replace(
+            Regex("[A-Za-z0-9_-]{20,}\\.[A-Za-z0-9_-]{20,}\\.[A-Za-z0-9_-]{20,}"),
+            "[JWT-REDACTED]"
+        )
+
+        // Sanitize base64-encoded strings (24+ chars with base64 characters)
+        // Common in tokens, app passwords, and encrypted data
+        sanitized = sanitized.replace(
+            Regex("\\b[A-Za-z0-9+/]{24,}={0,2}\\b"),
+            "[BASE64-REDACTED]"
+        )
+
+        // Sanitize Nextcloud app passwords (format: xxxxx-xxxxx-xxxxx-xxxxx-xxxxx)
+        sanitized = sanitized.replace(
+            Regex("[A-Za-z0-9]{5}-[A-Za-z0-9]{5}-[A-Za-z0-9]{5}-[A-Za-z0-9]{5}-[A-Za-z0-9]{5}"),
+            "[APP-PASSWORD-REDACTED]"
+        )
+
+        // Sanitize UUID-like strings (might be session tokens)
+        sanitized = sanitized.replace(
+            Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", RegexOption.IGNORE_CASE),
+            "[UUID-REDACTED]"
+        )
+
+        // Sanitize hexadecimal strings that might be tokens or hashes (40+ chars)
+        // Common for SHA-1, SHA-256, API keys
+        sanitized = sanitized.replace(
+            Regex("\\b[0-9a-fA-F]{40,}\\b"),
+            "[HEX-TOKEN-REDACTED]"
+        )
+
+        // Sanitize medium-length alphanumeric strings (20-31 chars)
+        // Catches shorter tokens that the original pattern missed
+        sanitized = sanitized.replace(
+            Regex("\\b[a-zA-Z0-9]{20,31}\\b(?![a-zA-Z0-9])"),
+            "[TOKEN-REDACTED]"
+        )
+
+        // Sanitize long alphanumeric strings (32+ chars)
         // But preserve exception class names and stack traces
         sanitized = sanitized.replace(
             Regex("\\b([a-zA-Z0-9]{32,})\\b(?![a-zA-Z])"),

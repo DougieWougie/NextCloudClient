@@ -15,12 +15,81 @@ import java.io.File
 import java.util.Date
 import java.util.concurrent.TimeUnit
 
+/**
+ * WebDAV client for communicating with Nextcloud servers.
+ *
+ * SECURITY CONSIDERATIONS - Credential Memory Handling:
+ *
+ * This class stores the password as a String in memory, which cannot be securely zeroed
+ * after use due to String immutability in Kotlin/Java. This is a known limitation imposed
+ * by the Sardine WebDAV library architecture.
+ *
+ * MITIGATIONS IMPLEMENTED:
+ * 1. Password is stored as a private property (minimal scope)
+ * 2. WebDavClient instances should be short-lived (create, use, discard)
+ * 3. Password is encrypted at rest using EncryptionUtil before being passed here
+ * 4. ProGuard strips all logging that might contain credentials in release builds
+ * 5. SafeLogger sanitizes any accidental credential logging in debug builds
+ *
+ * LIMITATIONS (UNAVOIDABLE):
+ * - Password remains in memory for the lifetime of the WebDavClient instance
+ * - String cannot be explicitly zeroed (unlike CharArray)
+ * - Sardine library requires String credentials (cannot accept CharArray)
+ * - Memory may contain password until garbage collected
+ *
+ * BEST PRACTICES FOR USAGE:
+ * 1. Create WebDavClient instances only when needed for network operations
+ * 2. Do not store WebDavClient instances as long-lived fields
+ * 3. Allow instances to be garbage collected after use
+ * 4. Use dependency injection to ensure instances are scoped appropriately
+ *
+ * Example of CORRECT usage:
+ * ```kotlin
+ * suspend fun performSync() {
+ *     // Create client only when needed
+ *     val client = WebDavClient(context, url, username, decryptedPassword)
+ *     try {
+ *         client.testConnection()
+ *         client.listFiles("/")
+ *         // ... perform sync operations
+ *     } finally {
+ *         // Allow client to be garbage collected
+ *         // Password will eventually be cleared by GC
+ *     }
+ * }
+ * ```
+ *
+ * Example of INCORRECT usage:
+ * ```kotlin
+ * class MyService {
+ *     // DON'T: Store as long-lived field
+ *     private val client = WebDavClient(...)
+ * }
+ * ```
+ *
+ * ALTERNATIVE APPROACHES CONSIDERED:
+ * - Using CharArray: Sardine library doesn't support it
+ * - Custom WebDAV implementation: Too complex, high maintenance burden
+ * - Contributing to Sardine: Library appears unmaintained
+ *
+ * @param context Application context for certificate pinning
+ * @param serverUrl Nextcloud server URL (e.g., "https://cloud.example.com")
+ * @param username User's username
+ * @param password User's password (will be held in memory - see security notes above)
+ */
 class WebDavClient(
     private val context: Context,
     private val serverUrl: String,
     private val username: String,
     private val password: String
 ) {
+    companion object {
+        // SECURITY: Limits to prevent DoS attacks from malicious WebDAV servers
+        private const val MAX_WEBDAV_RESPONSE_ITEMS = 10000 // Maximum items per directory listing
+        private const val MAX_FILE_NAME_LENGTH = 255 // Maximum file/folder name length
+        private const val MAX_FILE_SIZE_BYTES = 10L * 1024 * 1024 * 1024 // 10 GB max file size
+    }
+
     private val sardineHttpClient: OkHttpClient by lazy {
         CertificatePinningHelper.createPinnedClient(
             context = context,
@@ -157,12 +226,29 @@ class WebDavClient(
                 "$webdavBaseUrl/$remotePath"
             }
 
-            sardine.list(fullPath)
+            val resources = sardine.list(fullPath)
+
+            // SECURITY: Validate response size to prevent DoS attacks
+            if (resources.size > MAX_WEBDAV_RESPONSE_ITEMS) {
+                SafeLogger.w("WebDavClient", "WebDAV response too large: ${resources.size} items (max: $MAX_WEBDAV_RESPONSE_ITEMS)")
+                throw IllegalStateException("Too many files in directory (max $MAX_WEBDAV_RESPONSE_ITEMS)")
+            }
+
+            resources
                 .filter { !it.isDirectory }
-                .map { resource ->
+                .take(MAX_WEBDAV_RESPONSE_ITEMS) // Additional safety limit
+                .mapNotNull { resource ->
+                    val name = resource.name ?: ""
+
+                    // SECURITY: Validate file name length
+                    if (name.length > MAX_FILE_NAME_LENGTH) {
+                        SafeLogger.w("WebDavClient", "File name too long (${name.length} chars), skipping: ${name.take(50)}...")
+                        return@mapNotNull null
+                    }
+
                     DavResource(
                         path = extractUserRelativePath(resource.path),
-                        name = resource.name ?: "",
+                        name = name,
                         contentLength = resource.contentLength ?: 0L,
                         modified = resource.modified ?: Date(),
                         etag = resource.etag ?: "",
@@ -183,12 +269,29 @@ class WebDavClient(
                 "$webdavBaseUrl/$remotePath"
             }
 
-            sardine.list(fullPath)
+            val resources = sardine.list(fullPath)
+
+            // SECURITY: Validate response size to prevent DoS attacks
+            if (resources.size > MAX_WEBDAV_RESPONSE_ITEMS) {
+                SafeLogger.w("WebDavClient", "WebDAV response too large: ${resources.size} items (max: $MAX_WEBDAV_RESPONSE_ITEMS)")
+                throw IllegalStateException("Too many folders in directory (max $MAX_WEBDAV_RESPONSE_ITEMS)")
+            }
+
+            resources
                 .filter { it.isDirectory && it.path != fullPath }
-                .map { resource ->
+                .take(MAX_WEBDAV_RESPONSE_ITEMS) // Additional safety limit
+                .mapNotNull { resource ->
+                    val name = resource.name ?: ""
+
+                    // SECURITY: Validate folder name length
+                    if (name.length > MAX_FILE_NAME_LENGTH) {
+                        SafeLogger.w("WebDavClient", "Folder name too long (${name.length} chars), skipping: ${name.take(50)}...")
+                        return@mapNotNull null
+                    }
+
                     DavResource(
                         path = extractUserRelativePath(resource.path),
-                        name = resource.name ?: "",
+                        name = name,
                         contentLength = 0L,
                         modified = resource.modified ?: Date(),
                         etag = "",

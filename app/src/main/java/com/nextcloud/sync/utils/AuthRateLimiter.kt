@@ -2,6 +2,7 @@ package com.nextcloud.sync.utils
 
 import android.content.Context
 import android.content.SharedPreferences
+import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 
 /**
@@ -171,11 +172,42 @@ class AuthRateLimiter(context: Context) {
     }
 
     /**
-     * Sanitize identifier to prevent injection
+     * Sanitize identifier to prevent injection and collision attacks.
+     *
+     * If the identifier contains invalid characters, it is hashed using SHA-256
+     * to prevent collision attacks where different identifiers could sanitize
+     * to the same value (e.g., "admin@@@" and "admin" both become "admin").
+     *
+     * SECURITY: This prevents attackers from:
+     * - Locking out legitimate users by using crafted identifiers
+     * - Bypassing rate limits through identifier collision
+     *
+     * @param identifier The raw identifier to sanitize
+     * @return Sanitized identifier (either cleaned or hashed)
      */
     private fun sanitizeIdentifier(identifier: String): String {
-        // Only allow alphanumeric, underscore, colon, and hyphen
-        return identifier.replace(Regex("[^a-zA-Z0-9_:-]"), "").take(100)
+        // Check if identifier contains only allowed characters
+        val allowedPattern = Regex("^[a-zA-Z0-9_:-]{1,100}$")
+
+        if (allowedPattern.matches(identifier)) {
+            // Identifier is clean, use as-is
+            return identifier
+        }
+
+        // Identifier contains invalid characters or is too long
+        // Use SHA-256 hash to prevent collision attacks
+        val hash = try {
+            val digest = MessageDigest.getInstance("SHA-256")
+            val hashBytes = digest.digest(identifier.toByteArray(Charsets.UTF_8))
+            // Convert to hex string (first 32 characters for storage efficiency)
+            hashBytes.joinToString("") { "%02x".format(it) }.take(32)
+        } catch (e: Exception) {
+            SafeLogger.e("AuthRateLimiter", "Failed to hash identifier", e)
+            // Fallback: sanitize but prefix with hash indicator
+            identifier.replace(Regex("[^a-zA-Z0-9_:-]"), "_").take(90)
+        }
+
+        return "hash_$hash"
     }
 
     /**

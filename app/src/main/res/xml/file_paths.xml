@@ -1,5 +1,77 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    FileProvider Path Configuration
+
+    SECURITY CONSIDERATIONS:
+    - FileProvider exposes app files to other apps via content:// URIs
+    - Exposed paths should be as restrictive as possible
+    - URIs should only be created for specific, validated files
+    - URI permissions should be limited and revoked after use
+
+    CURRENT CONFIGURATION:
+    - Exposes external files in the sync/ directory
+    - Used for sharing synced files with other apps (e.g., viewing documents)
+
+    SECURITY BEST PRACTICES:
+    1. Only create URIs for specific, validated files (never expose entire directories)
+    2. Always use FLAG_GRANT_READ_URI_PERMISSION (avoid WRITE unless necessary)
+    3. Set specific target package when possible
+    4. Revoke URI permissions after use: context.revokeUriPermission(uri, flags)
+    5. Validate file paths before creating URIs to prevent path traversal
+
+    Example of CORRECT usage:
+    ```kotlin
+    // Create URI for a specific validated file
+    val file = File(context.getExternalFilesDir(null), "sync/Documents/report.pdf")
+    if (file.exists() && PathValidator.validatePathWithinRoot(syncRoot, file.path) != null) {
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/pdf")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            // Optionally set package: setPackage("com.example.pdfviewer")
+        }
+        startActivity(intent)
+
+        // Revoke after use if appropriate
+        context.revokeUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    ```
+
+    Example of INCORRECT usage:
+    ```kotlin
+    // DON'T: Create URIs for entire directories
+    val syncDir = File(context.getExternalFilesDir(null), "sync")
+    val uri = FileProvider.getUriForFile(...)  // BAD: exposes all files
+
+    // DON'T: Grant write permissions unnecessarily
+    intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)  // BAD: allows modification
+
+    // DON'T: Skip path validation
+    val uri = FileProvider.getUriForFile(context, authority, File(userInput))  // BAD: path traversal risk
+    ```
+
+    ALTERNATIVE CONFIGURATION (More Restrictive):
+    Instead of exposing the entire sync/ directory, consider creating URIs only for
+    specific files or using a dedicated exports/ subdirectory:
+
+    <external-files-path
+        name="sync_exports"
+        path="sync/exports/" />
+
+    Then copy files to sync/exports/ before sharing, and delete after use.
+-->
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--
+        Exposes synced files for sharing with other apps.
+
+        SECURITY WARNING:
+        - This exposes the entire sync/ directory
+        - Always validate file paths before creating URIs
+        - Only create URIs for specific, validated files
+        - Revoke URI permissions after use
+
+        See comments above for security best practices.
+    -->
     <external-files-path
         name="sync_files"
         path="sync/" />

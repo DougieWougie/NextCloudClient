@@ -9,12 +9,22 @@ import com.nextcloud.sync.utils.AuthRateLimiter
 import com.nextcloud.sync.utils.EncryptionUtil
 import com.nextcloud.sync.utils.InputValidator
 import com.nextcloud.sync.utils.RateLimitResult
+import kotlinx.coroutines.delay
 
 class LoginController(
     private val context: Context,
     private val accountRepository: AccountRepository,
     private val rateLimiter: AuthRateLimiter
 ) {
+    companion object {
+        // SECURITY: Anti-enumeration delay to prevent timing attacks
+        // This makes all failed login attempts take approximately the same time
+        private const val ANTI_ENUMERATION_DELAY_MS = 500L
+
+        // Generic error message to prevent account enumeration
+        private const val GENERIC_AUTH_ERROR = "Authentication failed. Please check your credentials and try again."
+    }
+
     interface LoginCallback {
         fun onLoginSuccess(requiresTwoFactor: Boolean, accountId: Long)
         fun onLoginError(error: String)
@@ -27,6 +37,8 @@ class LoginController(
         password: String,
         callback: LoginCallback
     ) {
+        val startTime = System.currentTimeMillis()
+
         // Validate inputs
         val urlValidation = InputValidator.validateServerUrl(serverUrl)
         if (!urlValidation.isValid()) {
@@ -46,7 +58,8 @@ class LoginController(
             return
         }
 
-        // Check rate limiting
+        // SECURITY: Check rate limiting BEFORE any authentication logic
+        // This prevents timing-based enumeration attacks
         val rateLimitIdentifier = "login:$username"
         when (val rateLimitResult = rateLimiter.checkAttempt(rateLimitIdentifier)) {
             is RateLimitResult.Blocked -> {
@@ -109,15 +122,46 @@ class LoginController(
                 }
 
                 is ConnectionResult.Error -> {
+                    // SECURITY: Use constant-time response and generic error message
+                    // to prevent account enumeration
+                    ensureMinimumResponseTime(startTime)
+
                     // Record failed login attempt
                     rateLimiter.recordFailedAttempt(rateLimitIdentifier)
-                    callback.onLoginError(connectionResult.message)
+
+                    // Use generic error message (no details about what failed)
+                    callback.onLoginError(GENERIC_AUTH_ERROR)
                 }
             }
         } catch (e: Exception) {
+            // SECURITY: Use constant-time response and generic error message
+            // to prevent account enumeration
+            ensureMinimumResponseTime(startTime)
+
             // Record failed login attempt
             rateLimiter.recordFailedAttempt(rateLimitIdentifier)
-            callback.onLoginError("Connection failed: ${e.message}")
+
+            // Use generic error message (no exception details exposed)
+            callback.onLoginError(GENERIC_AUTH_ERROR)
+        }
+    }
+
+    /**
+     * Ensures a minimum response time for failed authentication attempts.
+     *
+     * SECURITY: This prevents timing-based account enumeration attacks where
+     * attackers could distinguish between:
+     * - Valid username, wrong password (slower - server validates password)
+     * - Invalid username (faster - server rejects immediately)
+     *
+     * @param startTime The timestamp when the authentication attempt started
+     */
+    private suspend fun ensureMinimumResponseTime(startTime: Long) {
+        val elapsed = System.currentTimeMillis() - startTime
+        val remainingDelay = ANTI_ENUMERATION_DELAY_MS - elapsed
+
+        if (remainingDelay > 0) {
+            delay(remainingDelay)
         }
     }
 

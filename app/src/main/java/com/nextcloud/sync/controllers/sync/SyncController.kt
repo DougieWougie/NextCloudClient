@@ -2,6 +2,8 @@ package com.nextcloud.sync.controllers.sync
 
 import android.content.Context
 import android.net.Uri
+import android.os.Build
+import android.os.storage.StorageManager
 import com.nextcloud.sync.utils.SafeLogger
 import com.nextcloud.sync.models.data.SyncStatus
 import com.nextcloud.sync.models.database.entities.ConflictEntity
@@ -23,6 +25,11 @@ class SyncController(
     private val conflictRepository: ConflictRepository,
     private val webDavClient: WebDavClient
 ) {
+    companion object {
+        // SECURITY: Maximum file size to prevent storage exhaustion (10 GB)
+        private const val MAX_FILE_SIZE_BYTES = 10L * 1024 * 1024 * 1024
+    }
+
     interface SyncCallback {
         fun onSyncStarted(folderId: Long)
         fun onSyncProgress(current: Int, total: Int)
@@ -307,6 +314,23 @@ class SyncController(
         // Handle downloads
         plan.toDownload.forEach { remoteFile ->
             try {
+                // SECURITY: Validate file size before downloading to prevent storage exhaustion
+                if (remoteFile.size > MAX_FILE_SIZE_BYTES) {
+                    SafeLogger.w("SyncController", "Skipping download - file too large: ${remoteFile.size} bytes (max: $MAX_FILE_SIZE_BYTES)")
+                    current++
+                    callback.onSyncProgress(current, total)
+                    return@forEach
+                }
+
+                // SECURITY: Check available storage space
+                val availableSpace = getAvailableStorageSpace(folder.localPath)
+                if (remoteFile.size > availableSpace) {
+                    SafeLogger.w("SyncController", "Skipping download - insufficient storage: ${remoteFile.size} bytes required, $availableSpace bytes available")
+                    current++
+                    callback.onSyncProgress(current, total)
+                    return@forEach
+                }
+
                 // Extract and validate file name from remote path
                 val fileName = PathValidator.extractFileName(remoteFile.path)
                 if (fileName == null) {
@@ -332,12 +356,20 @@ class SyncController(
                 // Check if folder path is a content URI or file path
                 if (folder.localPath.startsWith("content://")) {
                     // Download to content URI
+                    // SECURITY: Validate path for traversal attempts
+                    if (!isValidContentUriPath(relativePath)) {
+                        SafeLogger.w("SyncController", "Skipping download - path traversal detected in content URI path: $relativePath")
+                        current++
+                        callback.onSyncProgress(current, total)
+                        return@forEach
+                    }
+
                     val documentHelper = DocumentFileHelper(context)
                     val rootDoc = documentHelper.getDocumentFile(folder.localPath)
 
                     if (rootDoc != null) {
                         // Ensure directory structure exists
-                        // relativePath is already validated by PathValidator
+                        // relativePath is validated against path traversal
                         val pathParts = relativePath.split("/").filter { it.isNotEmpty() }
                         val dirPath = pathParts.dropLast(1).joinToString("/")
                         val targetDir = if (dirPath.isEmpty()) {
@@ -454,6 +486,75 @@ class SyncController(
         }
 
         return SyncStats(uploaded, downloaded, conflictsDetected)
+    }
+
+    /**
+     * Gets available storage space for a given path (file path or content URI).
+     *
+     * @param path The local path (file path or content URI)
+     * @return Available space in bytes
+     */
+    private fun getAvailableStorageSpace(path: String): Long {
+        return try {
+            if (path.startsWith("content://")) {
+                // For content URIs, get available space from storage stats
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    val storageManager = context.getSystemService(Context.STORAGE_SERVICE) as StorageManager
+                    val uuid = storageManager.getUuidForPath(File(context.filesDir.absolutePath))
+                    storageManager.getAllocatableBytes(uuid)
+                } else {
+                    // Fallback for older versions - use internal storage
+                    context.filesDir.usableSpace
+                }
+            } else {
+                // For file paths, use the file system's usable space
+                File(path).usableSpace
+            }
+        } catch (e: Exception) {
+            SafeLogger.e("SyncController", "Failed to get available storage space", e)
+            // Return a conservative estimate (1 GB) if we can't determine actual space
+            1L * 1024 * 1024 * 1024
+        }
+    }
+
+    /**
+     * Validates a relative path for use with Content URIs to prevent path traversal attacks.
+     *
+     * Content URIs use the DocumentFile API which doesn't support File.canonicalPath,
+     * so we need to manually validate the path doesn't contain traversal attempts.
+     *
+     * @param relativePath The relative path to validate
+     * @return true if the path is safe to use, false if it contains traversal attempts
+     */
+    private fun isValidContentUriPath(relativePath: String): Boolean {
+        // Reject paths that try to escape via parent directory references
+        if (relativePath.contains("..")) {
+            return false
+        }
+
+        // Reject absolute paths (should always be relative)
+        if (relativePath.startsWith("/")) {
+            return false
+        }
+
+        // Normalize path and check for traversal in path segments
+        val normalizedPath = relativePath.replace("\\", "/")
+        val segments = normalizedPath.split("/")
+
+        // Check each segment - none should be ".." or empty (except trailing)
+        for (i in 0 until segments.size - 1) {
+            val segment = segments[i]
+            if (segment == ".." || segment.isEmpty()) {
+                return false
+            }
+        }
+
+        // Last segment (filename) can't be empty either
+        if (segments.isNotEmpty() && segments.last().isEmpty()) {
+            return false
+        }
+
+        return true
     }
 
     private fun getMimeType(path: String): String? {
