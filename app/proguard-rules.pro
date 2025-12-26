@@ -53,3 +53,25 @@
     public static void w(...);
     public static void e(...);
 }
+
+# Compose
+-keep class androidx.compose.** { *; }
+-keep class kotlin.Metadata { *; }
+-dontwarn androidx.compose.**
+
+# ViewModels
+-keep class * extends androidx.lifecycle.ViewModel {
+    <init>();
+}
+-keep class * extends androidx.lifecycle.AndroidViewModel {
+    <init>(android.app.Application);
+}
+
+# Navigation sealed classes
+-keep class com.nextcloud.sync.ui.navigation.Screen { *; }
+-keep class com.nextcloud.sync.ui.navigation.Screen$* { *; }
+
+# UI state classes
+-keep class com.nextcloud.sync.ui.screens.**.*UiState { *; }
+-keep class com.nextcloud.sync.ui.screens.**.*Event { *; }
+-keep class com.nextcloud.sync.ui.screens.**.*Event$* { *; }

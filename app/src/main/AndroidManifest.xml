@@ -25,56 +25,24 @@
         android:networkSecurityConfig="@xml/network_security_config"
         tools:targetApi="31">
 
-        <!-- Activities -->
+        <!-- Single Activity - Compose Navigation -->
         <activity
-            android:name=".views.activities.LoginActivity"
+            android:name=".MainActivity"
             android:exported="true"
             android:theme="@style/Theme.NextcloudSync">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Deep link for conflict resolution notifications -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="nextcloudsync" android:host="conflicts" />
+            </intent-filter>
         </activity>
-
-        <activity
-            android:name=".views.activities.WebLoginActivity"
-            android:exported="false"
-            android:theme="@style/Theme.NextcloudSync" />
-
-        <activity
-            android:name=".views.activities.TwoFactorActivity"
-            android:exported="false"
-            android:theme="@style/Theme.NextcloudSync" />
-
-        <activity
-            android:name=".views.activities.MainActivity"
-            android:exported="false"
-            android:theme="@style/Theme.NextcloudSync" />
-
-        <activity
-            android:name=".views.activities.ConflictResolutionActivity"
-            android:exported="false"
-            android:theme="@style/Theme.NextcloudSync" />
-
-        <activity
-            android:name=".views.activities.SettingsActivity"
-            android:exported="false"
-            android:theme="@style/Theme.NextcloudSync" />
-
-        <activity
-            android:name=".views.activities.AddFolderActivity"
-            android:exported="false"
-            android:theme="@style/Theme.NextcloudSync" />
-
-        <activity
-            android:name=".views.activities.EditFolderActivity"
-            android:exported="false"
-            android:theme="@style/Theme.NextcloudSync" />
-
-        <activity
-            android:name=".views.activities.FileBrowserActivity"
-            android:exported="false"
-            android:theme="@style/Theme.NextcloudSync" />
 
         <!-- FileProvider for sharing files -->
         <provider
