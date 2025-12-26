@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Data extraction rules for Android 12+ (API 31+)
+
+  These rules explicitly prevent sensitive data from being included in:
+  - Cloud backups (Google Drive auto-backup)
+  - Device-to-device transfers (Android's built-in transfer tool)
+
+  This is critical for security as even with android:allowBackup="false",
+  device-to-device transfers can still occur on Android 12+ unless explicitly disabled.
+
+  We exclude:
+  - SharedPreferences: Contains EncryptedSharedPreferences with certificate pins and settings
+  - Database: Contains encrypted SQLCipher database with credentials and sync metadata
+  - Files: Contains synced files that may be sensitive
+-->
+<data-extraction-rules>
+    <!-- Cloud backup rules (Google Drive, etc.) -->
+    <cloud-backup>
+        <!-- Exclude all shared preferences (includes EncryptedSharedPreferences) -->
+        <exclude domain="sharedpref" path="." />
+
+        <!-- Exclude all databases (SQLCipher encrypted database) -->
+        <exclude domain="database" path="." />
+
+        <!-- Exclude all files (synced content) -->
+        <exclude domain="file" path="." />
+
+        <!-- Exclude external storage files -->
+        <exclude domain="external" path="." />
+    </cloud-backup>
+
+    <!-- Device-to-device transfer rules -->
+    <device-transfer>
+        <!-- Exclude all shared preferences (includes EncryptedSharedPreferences) -->
+        <exclude domain="sharedpref" path="." />
+
+        <!-- Exclude all databases (SQLCipher encrypted database) -->
+        <exclude domain="database" path="." />
+
+        <!-- Exclude all files (synced content) -->
+        <exclude domain="file" path="." />
+
+        <!-- Exclude external storage files -->
+        <exclude domain="external" path="." />
+    </device-transfer>
+</data-extraction-rules>

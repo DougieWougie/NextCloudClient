@@ -1,7 +1,10 @@
 package com.nextcloud.sync
 
+import android.content.Intent
 import android.content.SharedPreferences
+import android.net.Uri
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -21,6 +24,7 @@ import com.nextcloud.sync.ui.components.LoadingIndicator
 import com.nextcloud.sync.ui.navigation.NavGraph
 import com.nextcloud.sync.ui.navigation.Screen
 import com.nextcloud.sync.ui.theme.NextcloudSyncTheme
+import com.nextcloud.sync.utils.SafeLogger
 import com.nextcloud.sync.utils.ThemePreference
 import kotlinx.coroutines.launch
 
@@ -41,6 +45,13 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Validate deep link intent before processing
+        if (!validateDeepLinkIntent(intent)) {
+            // Invalid deep link, finish activity
+            finish()
+            return
+        }
 
         // Load initial theme preference
         themeMode = ThemePreference.getThemeMode(this)
@@ -91,6 +102,63 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 }
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (!validateDeepLinkIntent(intent)) {
+            SafeLogger.w("MainActivity", "Received invalid deep link intent in onNewIntent")
+            // Don't process invalid intent
+            return
+        }
+        setIntent(intent)
+    }
+
+    /**
+     * Validates deep link intents to prevent malicious deep link attacks
+     *
+     * @param intent The intent to validate
+     * @return true if the intent is valid or not a deep link, false if it's an invalid deep link
+     */
+    private fun validateDeepLinkIntent(intent: Intent?): Boolean {
+        if (intent == null) {
+            return true
+        }
+
+        val data: Uri? = intent.data
+        if (data == null) {
+            // Not a deep link, allow normal processing
+            return true
+        }
+
+        // Validate scheme
+        if (data.scheme != "nextcloudsync") {
+            SafeLogger.w("MainActivity", "Invalid deep link scheme: ${data.scheme}")
+            Toast.makeText(this, "Invalid deep link", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        // Validate host
+        when (data.host) {
+            "conflicts" -> {
+                // Validate conflict ID parameter if present
+                val conflictId = data.getQueryParameter("id")
+                if (conflictId != null) {
+                    val id = conflictId.toLongOrNull()
+                    if (id == null || id <= 0 || id > Long.MAX_VALUE / 2) {
+                        SafeLogger.w("MainActivity", "Invalid conflict ID in deep link: $conflictId")
+                        Toast.makeText(this, "Invalid conflict ID", Toast.LENGTH_SHORT).show()
+                        return false
+                    }
+                }
+                return true
+            }
+            else -> {
+                SafeLogger.w("MainActivity", "Unknown deep link host: ${data.host}")
+                Toast.makeText(this, "Unknown deep link", Toast.LENGTH_SHORT).show()
+                return false
             }
         }
     }

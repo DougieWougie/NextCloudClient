@@ -2,6 +2,8 @@ package com.nextcloud.sync.utils
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import okhttp3.CertificatePinner
 import okhttp3.OkHttpClient
 import java.net.URL
@@ -201,6 +203,22 @@ object CertificatePinningHelper {
     }
 
     private fun getPrefs(context: Context): SharedPreferences {
-        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return try {
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+
+            EncryptedSharedPreferences.create(
+                context,
+                PREFS_NAME,
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+        } catch (e: Exception) {
+            SafeLogger.e("CertificatePinningHelper", "Failed to create EncryptedSharedPreferences, falling back to regular SharedPreferences", e)
+            // Fallback to regular SharedPreferences if encryption fails (should not happen in normal circumstances)
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        }
     }
 }
