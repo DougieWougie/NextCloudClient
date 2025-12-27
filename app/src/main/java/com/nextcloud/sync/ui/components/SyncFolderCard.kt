@@ -10,15 +10,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Sync
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -86,13 +89,20 @@ fun SyncFolderCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Split button design: Sync button + Menu button
+            // Split button: Main sync action + dropdown menu
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Main sync button (left part of split button)
                 FilledTonalButton(
                     onClick = onSyncClick,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(
+                        topStart = 20.dp,
+                        bottomStart = 20.dp,
+                        topEnd = 0.dp,
+                        bottomEnd = 0.dp
+                    )
                 ) {
                     Icon(
                         imageVector = Icons.Default.Sync,
@@ -103,14 +113,22 @@ fun SyncFolderCard(
                     Text("Sync")
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // Menu button
-                IconButton(
-                    onClick = { menuExpanded = true }
+                // Dropdown trigger button (right part of split button)
+                FilledTonalIconButton(
+                    onClick = { menuExpanded = true },
+                    shape = RoundedCornerShape(
+                        topStart = 0.dp,
+                        bottomStart = 0.dp,
+                        topEnd = 20.dp,
+                        bottomEnd = 20.dp
+                    ),
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
                 ) {
                     Icon(
-                        imageVector = Icons.Default.MoreVert,
+                        imageVector = Icons.Default.ArrowDropDown,
                         contentDescription = "More options"
                     )
                 }
