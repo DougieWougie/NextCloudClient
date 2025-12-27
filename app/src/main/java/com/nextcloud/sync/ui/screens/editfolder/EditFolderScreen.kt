@@ -113,19 +113,23 @@ fun SharedTransitionScope.EditFolderScreen(
                 Text(
                     text = "Local Folder",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
                 )
 
                 Text(
                     text = "Cannot be changed after creation",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        ,
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                     )
@@ -163,13 +167,16 @@ fun SharedTransitionScope.EditFolderScreen(
                 Text(
                     text = "Remote Folder",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        ,
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -195,7 +202,9 @@ fun SharedTransitionScope.EditFolderScreen(
 
                 OutlinedButton(
                     onClick = { onNavigateToFileBrowser(uiState.remotePath) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        
                 ) {
                     Text("Change Remote Folder")
                 }
@@ -206,13 +215,16 @@ fun SharedTransitionScope.EditFolderScreen(
                 Text(
                     text = "Sync Options",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        ,
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -282,7 +294,9 @@ fun SharedTransitionScope.EditFolderScreen(
 
                 Button(
                     onClick = { viewModel.onEvent(EditFolderEvent.SaveClicked) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        
                 ) {
                     Text("Save Changes")
                 }

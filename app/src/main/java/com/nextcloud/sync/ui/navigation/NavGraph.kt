@@ -4,6 +4,11 @@ import android.content.Context
 import android.net.Uri
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -138,7 +143,21 @@ fun NavGraph(
         // Edit Folder Screen
         composable(
             route = Screen.EditFolder.ROUTE,
-            arguments = listOf(navArgument("folderId") { type = NavType.LongType })
+            arguments = listOf(navArgument("folderId") { type = NavType.LongType }),
+            enterTransition = {
+                fadeIn(animationSpec = tween(300, delayMillis = 90)) +
+                        scaleIn(initialScale = 0.92f, animationSpec = tween(300, delayMillis = 90))
+            },
+            exitTransition = {
+                fadeOut(animationSpec = tween(90))
+            },
+            popEnterTransition = {
+                fadeIn(animationSpec = tween(90))
+            },
+            popExitTransition = {
+                fadeOut(animationSpec = tween(300)) +
+                        scaleOut(targetScale = 0.92f, animationSpec = tween(300))
+            }
         ) { backStackEntry ->
             val folderId = backStackEntry.arguments?.getLong("folderId") ?: 0L
             val folderRepository = FolderRepository(db.folderDao())
@@ -237,7 +256,15 @@ fun NavGraph(
         }
 
         // Main Screen
-        composable(Screen.Main.route) {
+        composable(
+            route = Screen.Main.route,
+            enterTransition = {
+                fadeIn(animationSpec = tween(90))
+            },
+            exitTransition = {
+                fadeOut(animationSpec = tween(90))
+            }
+        ) {
             val folderRepository = FolderRepository(db.folderDao())
             val viewModel = MainViewModel(folderRepository, accountRepository, context)
 
