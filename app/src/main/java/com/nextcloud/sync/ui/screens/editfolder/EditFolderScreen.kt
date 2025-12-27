@@ -1,5 +1,13 @@
 package com.nextcloud.sync.ui.screens.editfolder
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.BoundsTransform
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.ArcMode
+import androidx.compose.animation.core.ExperimentalAnimationSpecApi
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.keyframes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -37,15 +45,26 @@ import com.nextcloud.sync.ui.components.AppTopBar
 import com.nextcloud.sync.ui.components.ErrorDialog
 import com.nextcloud.sync.ui.components.LoadingIndicator
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class, ExperimentalAnimationSpecApi::class)
 @Composable
-fun EditFolderScreen(
+fun SharedTransitionScope.EditFolderScreen(
     viewModel: EditFolderViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateToFileBrowser: (String) -> Unit
+    onNavigateToFileBrowser: (String) -> Unit,
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    folderId: Long
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Custom bounds transform for Material container transform animation
+    val boundsTransform = BoundsTransform { initialBounds, targetBounds ->
+        keyframes {
+            durationMillis = 500
+            initialBounds at 0 using ArcMode.ArcBelow using FastOutSlowInEasing
+            targetBounds at 500
+        }
+    }
 
     // Handle navigation back on success
     LaunchedEffect(uiState.shouldNavigateBack) {
@@ -81,6 +100,11 @@ fun EditFolderScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .sharedBounds(
+                        sharedContentState = rememberSharedContentState(key = "folder-$folderId"),
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        boundsTransform = boundsTransform
+                    )
                     .padding(paddingValues)
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp)

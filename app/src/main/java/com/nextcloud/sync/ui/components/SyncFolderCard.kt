@@ -1,5 +1,13 @@
 package com.nextcloud.sync.ui.components
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.BoundsTransform
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.ArcMode
+import androidx.compose.animation.core.ExperimentalAnimationSpecApi
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.keyframes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -31,19 +39,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.nextcloud.sync.models.database.entities.FolderEntity
 import com.nextcloud.sync.utils.UriPathHelper
 
+@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalAnimationSpecApi::class)
 @Composable
-fun SyncFolderCard(
+fun SharedTransitionScope.SyncFolderCard(
     folder: FolderEntity,
     onFolderClick: () -> Unit,
     onSyncClick: () -> Unit,
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
+    animatedVisibilityScope: AnimatedVisibilityScope,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -55,9 +66,23 @@ fun SyncFolderCard(
 
     var menuExpanded by remember { mutableStateOf(false) }
 
+    // Custom bounds transform for Material container transform animation
+    val boundsTransform = BoundsTransform { initialBounds, targetBounds ->
+        keyframes {
+            durationMillis = 500
+            initialBounds at 0 using ArcMode.ArcBelow using FastOutSlowInEasing
+            targetBounds at 500
+        }
+    }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .sharedBounds(
+                sharedContentState = rememberSharedContentState(key = "folder-${folder.id}"),
+                animatedVisibilityScope = animatedVisibilityScope,
+                boundsTransform = boundsTransform
+            )
             .clickable(onClick = onFolderClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {

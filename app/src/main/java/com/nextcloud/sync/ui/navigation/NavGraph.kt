@@ -2,6 +2,8 @@ package com.nextcloud.sync.ui.navigation
 
 import android.content.Context
 import android.net.Uri
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -42,6 +44,7 @@ import com.nextcloud.sync.ui.screens.weblogin.WebLoginViewModel
 import com.nextcloud.sync.utils.AuthRateLimiter
 import com.nextcloud.sync.utils.EncryptionUtil
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun NavGraph(
     navController: NavHostController,
@@ -51,10 +54,11 @@ fun NavGraph(
     val db = AppDatabase.getInstance(context)
     val accountRepository = AccountRepository(db.accountDao())
 
-    NavHost(
-        navController = navController,
-        startDestination = startDestination
-    ) {
+    SharedTransitionLayout {
+        NavHost(
+            navController = navController,
+            startDestination = startDestination
+        ) {
         // Login Screen
         composable(Screen.Login.route) {
             val viewModel = LoginViewModel(accountRepository)
@@ -166,7 +170,9 @@ fun NavGraph(
                 onNavigateBack = { navController.navigateUp() },
                 onNavigateToFileBrowser = { currentPath ->
                     navController.navigate(Screen.FileBrowser.createRoute(currentPath))
-                }
+                },
+                animatedVisibilityScope = this,
+                folderId = folderId
             )
         }
 
@@ -237,7 +243,8 @@ fun NavGraph(
 
             MainScreen(
                 viewModel = viewModel,
-                navController = navController
+                navController = navController,
+                animatedVisibilityScope = this
             )
         }
 
@@ -262,6 +269,7 @@ fun NavGraph(
                 },
                 onNavigateBack = { navController.navigateUp() }
             )
+        }
         }
     }
 }

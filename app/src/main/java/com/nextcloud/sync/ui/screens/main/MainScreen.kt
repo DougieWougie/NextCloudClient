@@ -1,5 +1,8 @@
 package com.nextcloud.sync.ui.screens.main
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,11 +52,12 @@ import com.nextcloud.sync.ui.components.LoadingIndicator
 import com.nextcloud.sync.ui.components.SyncFolderCard
 import com.nextcloud.sync.ui.navigation.Screen
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
-fun MainScreen(
+fun SharedTransitionScope.MainScreen(
     viewModel: MainViewModel,
-    navController: NavHostController
+    navController: NavHostController,
+    animatedVisibilityScope: AnimatedVisibilityScope
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -93,6 +97,12 @@ fun MainScreen(
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 ),
                 actions = {
+                    IconButton(onClick = { navController.navigate(Screen.AddFolder.route) }) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Add folder"
+                        )
+                    }
                     IconButton(onClick = { menuExpanded = true }) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
@@ -103,13 +113,6 @@ fun MainScreen(
                         expanded = menuExpanded,
                         onDismissRequest = { menuExpanded = false }
                     ) {
-                        DropdownMenuItem(
-                            text = { Text("Add Folder") },
-                            onClick = {
-                                menuExpanded = false
-                                navController.navigate(Screen.AddFolder.route)
-                            }
-                        )
                         DropdownMenuItem(
                             text = { Text("Settings") },
                             onClick = {
@@ -179,7 +182,8 @@ fun MainScreen(
                         },
                         onDeleteClick = {
                             viewModel.onEvent(MainEvent.DeleteFolderClicked(folder))
-                        }
+                        },
+                        animatedVisibilityScope = animatedVisibilityScope
                     )
                 }
             }
