@@ -26,7 +26,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         FileEntity::class,
         ConflictEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -68,6 +68,21 @@ abstract class AppDatabase : RoomDatabase() {
         }
 
         /**
+         * Database migration from version 2 to version 3.
+         * Adds index on sync_enabled column for performance optimization.
+         */
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                SafeLogger.d("AppDatabase", "Migrating database from version 2 to 3")
+
+                // Add index on sync_enabled column to optimize getSyncEnabledFolders() query
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_folders_sync_enabled ON folders(sync_enabled)")
+
+                SafeLogger.d("AppDatabase", "Migration 2->3 completed successfully")
+            }
+        }
+
+        /**
          * Creates or retrieves the singleton database instance.
          *
          * SECURITY IMPROVEMENTS:
@@ -97,7 +112,7 @@ abstract class AppDatabase : RoomDatabase() {
                     // This prevents accidental data loss from schema version mismatches
                     .fallbackToDestructiveMigrationOnDowngrade()
                     // Add migrations here as database schema evolves
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     // Migration callback for logging and validation
                     .addCallback(object : RoomDatabase.Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {

@@ -16,7 +16,7 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("account_id"), Index("remote_path")]
+    indices = [Index("account_id"), Index("remote_path"), Index("sync_enabled")]
 )
 data class FolderEntity(
     @PrimaryKey(autoGenerate = true)
