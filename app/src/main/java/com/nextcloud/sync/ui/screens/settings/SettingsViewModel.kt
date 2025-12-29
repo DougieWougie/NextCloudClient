@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nextcloud.sync.models.repository.AccountRepository
 import com.nextcloud.sync.utils.DefaultFolderPreference
+import com.nextcloud.sync.utils.HiddenFilesPreference
 import com.nextcloud.sync.utils.ThemePreference
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,6 +21,7 @@ data class SettingsUiState(
     val usernameError: String? = null,
     val defaultFolderNameError: String? = null,
     val currentTheme: String = ThemePreference.THEME_AUTO,
+    val showHiddenFiles: Boolean = false,
     val isLoading: Boolean = true,
     val showThemeDialog: Boolean = false,
     val showLogoutDialog: Boolean = false,
@@ -35,6 +37,7 @@ sealed class SettingsEvent {
     object ChangeThemeClicked : SettingsEvent()
     data class ThemeSelected(val theme: String) : SettingsEvent()
     object ThemeDialogDismissed : SettingsEvent()
+    data class ShowHiddenFilesToggled(val show: Boolean) : SettingsEvent()
     object LogoutClicked : SettingsEvent()
     object LogoutConfirmed : SettingsEvent()
     object LogoutDialogDismissed : SettingsEvent()
@@ -82,6 +85,10 @@ class SettingsViewModel(
             is SettingsEvent.ThemeDialogDismissed -> {
                 _uiState.update { it.copy(showThemeDialog = false) }
             }
+            is SettingsEvent.ShowHiddenFilesToggled -> {
+                HiddenFilesPreference.setShowHidden(context, event.show)
+                _uiState.update { it.copy(showHiddenFiles = event.show) }
+            }
             is SettingsEvent.LogoutClicked -> {
                 _uiState.update { it.copy(showLogoutDialog = true) }
             }
@@ -99,6 +106,7 @@ class SettingsViewModel(
         viewModelScope.launch {
             val currentTheme = ThemePreference.getThemeMode(context)
             val defaultFolderName = DefaultFolderPreference.getDefaultFolderName(context)
+            val showHiddenFiles = HiddenFilesPreference.getShowHidden(context)
             val account = accountRepository.getActiveAccount()
 
             if (account != null) {
@@ -109,6 +117,7 @@ class SettingsViewModel(
                         username = account.username,
                         defaultFolderName = defaultFolderName,
                         currentTheme = currentTheme,
+                        showHiddenFiles = showHiddenFiles,
                         isLoading = false
                     )
                 }
@@ -117,6 +126,7 @@ class SettingsViewModel(
                     it.copy(
                         defaultFolderName = defaultFolderName,
                         currentTheme = currentTheme,
+                        showHiddenFiles = showHiddenFiles,
                         isLoading = false
                     )
                 }

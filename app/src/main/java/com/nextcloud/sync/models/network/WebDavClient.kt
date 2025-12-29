@@ -407,6 +407,70 @@ class WebDavClient(
             false
         }
     }
+
+    /**
+     * Rename a file or folder.
+     * This is implemented as a move operation within the same directory.
+     *
+     * @param oldPath Current user-relative path (e.g., "/folder/oldname.txt")
+     * @param newPath New user-relative path (e.g., "/folder/newname.txt")
+     * @return True if successful, false otherwise
+     */
+    suspend fun renameFile(oldPath: String, newPath: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val fullOldPath = buildFullPath(oldPath)
+            val fullNewPath = buildFullPath(newPath)
+            SafeLogger.d("WebDavClient", "Renaming from: $fullOldPath to: $fullNewPath")
+
+            sardine.move(fullOldPath, fullNewPath)
+            true
+        } catch (e: Exception) {
+            SafeLogger.e("WebDavClient", "Rename failed", e)
+            false
+        }
+    }
+
+    /**
+     * Move a file or folder to a different directory.
+     *
+     * @param sourcePath Source user-relative path (e.g., "/folder1/file.txt")
+     * @param destPath Destination user-relative path (e.g., "/folder2/file.txt")
+     * @return True if successful, false otherwise
+     */
+    suspend fun moveFile(sourcePath: String, destPath: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val fullSourcePath = buildFullPath(sourcePath)
+            val fullDestPath = buildFullPath(destPath)
+            SafeLogger.d("WebDavClient", "Moving from: $fullSourcePath to: $fullDestPath")
+
+            sardine.move(fullSourcePath, fullDestPath)
+            true
+        } catch (e: Exception) {
+            SafeLogger.e("WebDavClient", "Move failed", e)
+            false
+        }
+    }
+
+    /**
+     * Copy a file or folder to a different location.
+     *
+     * @param sourcePath Source user-relative path (e.g., "/folder1/file.txt")
+     * @param destPath Destination user-relative path (e.g., "/folder2/file.txt")
+     * @return True if successful, false otherwise
+     */
+    suspend fun copyFile(sourcePath: String, destPath: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val fullSourcePath = buildFullPath(sourcePath)
+            val fullDestPath = buildFullPath(destPath)
+            SafeLogger.d("WebDavClient", "Copying from: $fullSourcePath to: $fullDestPath")
+
+            sardine.copy(fullSourcePath, fullDestPath)
+            true
+        } catch (e: Exception) {
+            SafeLogger.e("WebDavClient", "Copy failed", e)
+            false
+        }
+    }
 }
 
 data class DavResource(

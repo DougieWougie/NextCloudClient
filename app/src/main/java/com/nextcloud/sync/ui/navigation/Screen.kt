@@ -19,7 +19,7 @@ sealed class Screen(val route: String) {
         }
     }
 
-    object Main : Screen("main")
+    object MainContainer : Screen("main_container")
     object AddFolder : Screen("add_folder")
 
     data class EditFolder(val folderId: Long) : Screen("edit_folder/{folderId}") {

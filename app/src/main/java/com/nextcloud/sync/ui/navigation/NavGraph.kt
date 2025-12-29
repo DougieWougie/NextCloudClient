@@ -44,6 +44,7 @@ import com.nextcloud.sync.ui.screens.filebrowser.FileBrowserScreen
 import com.nextcloud.sync.ui.screens.filebrowser.FileBrowserViewModel
 import com.nextcloud.sync.ui.screens.main.MainScreen
 import com.nextcloud.sync.ui.screens.main.MainViewModel
+import com.nextcloud.sync.ui.screens.maincontainer.MainContainerScreen
 import com.nextcloud.sync.ui.screens.weblogin.WebLoginScreen
 import com.nextcloud.sync.ui.screens.weblogin.WebLoginViewModel
 import com.nextcloud.sync.utils.AuthRateLimiter
@@ -70,7 +71,7 @@ fun NavGraph(
             LoginScreen(
                 viewModel = viewModel,
                 onNavigateToMain = {
-                    navController.navigate(Screen.Main.route) {
+                    navController.navigate(Screen.MainContainer.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 },
@@ -94,7 +95,7 @@ fun NavGraph(
             TwoFactorScreen(
                 viewModel = viewModel,
                 onNavigateToMain = {
-                    navController.navigate(Screen.Main.route) {
+                    navController.navigate(Screen.MainContainer.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 }
@@ -255,9 +256,9 @@ fun NavGraph(
             )
         }
 
-        // Main Screen
+        // Main Container Screen (with bottom navigation)
         composable(
-            route = Screen.Main.route,
+            route = Screen.MainContainer.route,
             enterTransition = {
                 fadeIn(animationSpec = tween(90))
             },
@@ -265,13 +266,9 @@ fun NavGraph(
                 fadeOut(animationSpec = tween(90))
             }
         ) {
-            val folderRepository = FolderRepository(db.folderDao())
-            val viewModel = MainViewModel(folderRepository, accountRepository, context)
-
-            MainScreen(
-                viewModel = viewModel,
+            this@SharedTransitionLayout.MainContainerScreen(
                 navController = navController,
-                animatedVisibilityScope = this
+                context = context
             )
         }
 
@@ -290,7 +287,7 @@ fun NavGraph(
             WebLoginScreen(
                 viewModel = viewModel,
                 onNavigateToMain = {
-                    navController.navigate(Screen.Main.route) {
+                    navController.navigate(Screen.MainContainer.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 },

@@ -88,7 +88,7 @@ class MainActivity : ComponentActivity() {
                             val account = accountRepository.getActiveAccount()
 
                             startDestination = if (account != null) {
-                                Screen.Main.route
+                                Screen.MainContainer.route
                             } else {
                                 Screen.Login.route
                             }

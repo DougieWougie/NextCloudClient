@@ -11,10 +11,12 @@ import com.nextcloud.sync.models.database.dao.AccountDao
 import com.nextcloud.sync.models.database.dao.ConflictDao
 import com.nextcloud.sync.models.database.dao.FileDao
 import com.nextcloud.sync.models.database.dao.FolderDao
+import com.nextcloud.sync.models.database.dao.IndividualFileSyncDao
 import com.nextcloud.sync.models.database.entities.AccountEntity
 import com.nextcloud.sync.models.database.entities.ConflictEntity
 import com.nextcloud.sync.models.database.entities.FileEntity
 import com.nextcloud.sync.models.database.entities.FolderEntity
+import com.nextcloud.sync.models.database.entities.IndividualFileSyncEntity
 import com.nextcloud.sync.utils.EncryptionUtil
 import com.nextcloud.sync.utils.SafeLogger
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
@@ -24,9 +26,10 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         AccountEntity::class,
         FolderEntity::class,
         FileEntity::class,
-        ConflictEntity::class
+        ConflictEntity::class,
+        IndividualFileSyncEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -35,6 +38,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun folderDao(): FolderDao
     abstract fun fileDao(): FileDao
     abstract fun conflictDao(): ConflictDao
+    abstract fun individualFileSyncDao(): IndividualFileSyncDao
 
     companion object {
         @Volatile
@@ -83,6 +87,39 @@ abstract class AppDatabase : RoomDatabase() {
         }
 
         /**
+         * Database migration from version 3 to version 4.
+         * Adds individual_file_sync table for individual file sync functionality.
+         */
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                SafeLogger.d("AppDatabase", "Migrating database from version 3 to 4")
+
+                // Create individual_file_sync table
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS individual_file_sync (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        account_id INTEGER NOT NULL,
+                        local_path TEXT NOT NULL,
+                        remote_path TEXT NOT NULL,
+                        file_name TEXT NOT NULL,
+                        sync_enabled INTEGER NOT NULL DEFAULT 1,
+                        auto_sync INTEGER NOT NULL DEFAULT 1,
+                        wifi_only INTEGER NOT NULL DEFAULT 0,
+                        last_sync INTEGER,
+                        FOREIGN KEY(account_id) REFERENCES accounts(id) ON DELETE CASCADE
+                    )
+                """)
+
+                // Create indices for performance
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_individual_file_sync_account_id ON individual_file_sync(account_id)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_individual_file_sync_remote_path ON individual_file_sync(remote_path)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_individual_file_sync_sync_enabled ON individual_file_sync(sync_enabled)")
+
+                SafeLogger.d("AppDatabase", "Migration 3->4 completed successfully")
+            }
+        }
+
+        /**
          * Creates or retrieves the singleton database instance.
          *
          * SECURITY IMPROVEMENTS:
@@ -112,7 +149,7 @@ abstract class AppDatabase : RoomDatabase() {
                     // This prevents accidental data loss from schema version mismatches
                     .fallbackToDestructiveMigrationOnDowngrade()
                     // Add migrations here as database schema evolves
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     // Migration callback for logging and validation
                     .addCallback(object : RoomDatabase.Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {

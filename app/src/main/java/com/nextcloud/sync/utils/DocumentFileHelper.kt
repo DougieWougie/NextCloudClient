@@ -159,6 +159,80 @@ class DocumentFileHelper(private val context: Context) {
     fun exists(rootDirectory: DocumentFile, relativePath: String): Boolean {
         return findFileByPath(rootDirectory, relativePath) != null
     }
+
+    /**
+     * Rename a file or directory.
+     *
+     * @param documentFile The file to rename
+     * @param newName New name (without path)
+     * @return True if successful, false otherwise
+     */
+    fun renameFile(documentFile: DocumentFile, newName: String): Boolean {
+        return try {
+            documentFile.renameTo(newName)
+        } catch (e: Exception) {
+            SafeLogger.e("DocumentFileHelper", "Rename failed", e)
+            false
+        }
+    }
+
+    /**
+     * Move a file to a different directory by copying and deleting the original.
+     * Note: DocumentFile doesn't support direct move, so we copy + delete.
+     *
+     * @param sourceFile The file to move
+     * @param destDirectory The destination directory
+     * @return The new DocumentFile if successful, null otherwise
+     */
+    fun moveFile(sourceFile: DocumentFile, destDirectory: DocumentFile): DocumentFile? {
+        return try {
+            // First copy the file
+            val copiedFile = copyFile(sourceFile, destDirectory, null) ?: return null
+
+            // Delete the original
+            if (sourceFile.delete()) {
+                copiedFile
+            } else {
+                // If delete failed, clean up the copy and return null
+                copiedFile.delete()
+                null
+            }
+        } catch (e: Exception) {
+            SafeLogger.e("DocumentFileHelper", "Move failed", e)
+            null
+        }
+    }
+
+    /**
+     * Copy a file to a different directory.
+     * Creates a new file in the destination and copies content via streams.
+     *
+     * @param sourceFile The file to copy
+     * @param destDirectory The destination directory
+     * @param newName Optional new name (uses source name if null)
+     * @return The new DocumentFile if successful, null otherwise
+     */
+    fun copyFile(sourceFile: DocumentFile, destDirectory: DocumentFile, newName: String? = null): DocumentFile? {
+        return try {
+            val fileName = newName ?: sourceFile.name ?: return null
+            val mimeType = sourceFile.type ?: "application/octet-stream"
+
+            // Create new file in destination
+            val newFile = createFile(destDirectory, fileName, mimeType) ?: return null
+
+            // Copy content
+            openInputStream(sourceFile.uri)?.use { input ->
+                openOutputStream(newFile.uri)?.use { output ->
+                    input.copyTo(output)
+                }
+            }
+
+            newFile
+        } catch (e: Exception) {
+            SafeLogger.e("DocumentFileHelper", "Copy failed", e)
+            null
+        }
+    }
 }
 
 data class DocumentFileInfo(
