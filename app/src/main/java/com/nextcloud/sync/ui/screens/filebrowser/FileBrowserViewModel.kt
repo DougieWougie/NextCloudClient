@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.nextcloud.sync.models.network.WebDavClient
 import com.nextcloud.sync.models.repository.AccountRepository
 import com.nextcloud.sync.utils.EncryptionUtil
+import com.nextcloud.sync.utils.HiddenFilesPreference
 import com.nextcloud.sync.utils.PathValidator
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -64,6 +65,7 @@ class FileBrowserViewModel(
 
     private lateinit var webDavClient: WebDavClient
     private val folderStack = mutableListOf<String>()
+    private var userEmail: String? = null
 
     init {
         loadAccount()
@@ -112,6 +114,9 @@ class FileBrowserViewModel(
                     return@launch
                 }
 
+                // Store user email for hidden directory filtering
+                userEmail = account.username
+
                 val password = EncryptionUtil.decryptPassword(account.passwordEncrypted)
                 val authToken = account.authTokenEncrypted?.let { EncryptionUtil.decryptPassword(it) } ?: password
                 webDavClient = WebDavClient(context, account.serverUrl, account.username, authToken)
@@ -137,7 +142,17 @@ class FileBrowserViewModel(
 
             try {
                 val webDavFolders = webDavClient.listFolders(_uiState.value.currentPath)
-                val folders = webDavFolders.map { FolderItem(it.name, it.path) }
+                val showHidden = HiddenFilesPreference.getShowHidden(context)
+
+                // Filter hidden folders based on preference
+                val folders = webDavFolders.mapNotNull { folder ->
+                    // Filter hidden folders if needed
+                    if (HiddenFilesPreference.shouldFilter(folder.name, showHidden, userEmail)) {
+                        null
+                    } else {
+                        FolderItem(folder.name, folder.path)
+                    }
+                }
 
                 _uiState.update {
                     it.copy(
