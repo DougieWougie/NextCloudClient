@@ -205,10 +205,30 @@ class AddFolderViewModel(
 
         viewModelScope.launch {
             try {
+                val remotePath = _uiState.value.selectedRemotePath
+
+                // Check if a folder with this remote path already exists
+                val existingByRemote = folderRepository.getFolderByRemotePath(accountId, remotePath)
+                if (existingByRemote != null) {
+                    _uiState.update {
+                        it.copy(errorMessage = "This remote folder is already being synced")
+                    }
+                    return@launch
+                }
+
+                // Check if a folder with this local path already exists
+                val existingByLocal = folderRepository.getFolderByLocalPath(accountId, localPath)
+                if (existingByLocal != null) {
+                    _uiState.update {
+                        it.copy(errorMessage = "This local folder is already being synced")
+                    }
+                    return@launch
+                }
+
                 val folder = FolderEntity(
                     accountId = accountId,
                     localPath = localPath,
-                    remotePath = _uiState.value.selectedRemotePath,
+                    remotePath = remotePath,
                     syncEnabled = true,
                     twoWaySync = _uiState.value.twoWaySync,
                     wifiOnly = _uiState.value.wifiOnly

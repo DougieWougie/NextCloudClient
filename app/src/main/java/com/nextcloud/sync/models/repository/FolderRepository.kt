@@ -35,4 +35,12 @@ class FolderRepository(private val folderDao: FolderDao) {
     suspend fun updateLastRemoteScan(folderId: Long, timestamp: Long) {
         folderDao.updateLastRemoteScan(folderId, timestamp)
     }
+
+    suspend fun getFolderByRemotePath(accountId: Long, remotePath: String): FolderEntity? {
+        return folderDao.getFolderByRemotePath(accountId, remotePath)
+    }
+
+    suspend fun getFolderByLocalPath(accountId: Long, localPath: String): FolderEntity? {
+        return folderDao.getFolderByLocalPath(accountId, localPath)
+    }
 }

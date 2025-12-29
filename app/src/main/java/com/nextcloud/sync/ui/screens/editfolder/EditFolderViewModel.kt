@@ -112,9 +112,22 @@ class EditFolderViewModel(
         viewModelScope.launch {
             try {
                 val folder = folderRepository.getFolderById(folderId) ?: return@launch
+                val newRemotePath = _uiState.value.remotePath
+
+                // Only check for duplicates if the remote path has changed
+                if (newRemotePath != folder.remotePath) {
+                    // Check if another folder with this remote path already exists
+                    val existingByRemote = folderRepository.getFolderByRemotePath(folder.accountId, newRemotePath)
+                    if (existingByRemote != null && existingByRemote.id != folderId) {
+                        _uiState.update {
+                            it.copy(errorMessage = "Another folder is already syncing this remote path")
+                        }
+                        return@launch
+                    }
+                }
 
                 val updatedFolder = folder.copy(
-                    remotePath = _uiState.value.remotePath,
+                    remotePath = newRemotePath,
                     twoWaySync = _uiState.value.twoWaySync,
                     wifiOnly = _uiState.value.wifiOnly
                 )

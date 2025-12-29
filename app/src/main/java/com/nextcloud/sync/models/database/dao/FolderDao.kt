@@ -33,4 +33,10 @@ interface FolderDao {
 
     @Query("UPDATE folders SET last_remote_scan = :timestamp WHERE id = :folderId")
     suspend fun updateLastRemoteScan(folderId: Long, timestamp: Long)
+
+    @Query("SELECT * FROM folders WHERE account_id = :accountId AND remote_path = :remotePath LIMIT 1")
+    suspend fun getFolderByRemotePath(accountId: Long, remotePath: String): FolderEntity?
+
+    @Query("SELECT * FROM folders WHERE account_id = :accountId AND local_path = :localPath LIMIT 1")
+    suspend fun getFolderByLocalPath(accountId: Long, localPath: String): FolderEntity?
 }
