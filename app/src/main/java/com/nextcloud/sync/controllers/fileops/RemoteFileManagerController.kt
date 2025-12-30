@@ -6,6 +6,7 @@ import com.nextcloud.sync.models.repository.IndividualFileSyncRepository
 import com.nextcloud.sync.models.database.entities.IndividualFileSyncEntity
 import com.nextcloud.sync.utils.HiddenFilesPreference
 import com.nextcloud.sync.utils.PathValidator
+import com.nextcloud.sync.utils.RemoteFileCache
 import com.nextcloud.sync.utils.SafeLogger
 import java.util.Date
 
@@ -43,9 +44,14 @@ class RemoteFileManagerController(
      *
      * @param remotePath Remote WebDAV path (e.g., "/folder/subfolder")
      * @param userEmail User's email address for filtering email-based hidden directories (optional)
+     * @param forceRefresh If true, bypass cache and fetch from server
      * @return List of remote file items (files and folders)
      */
-    suspend fun listFilesAndFolders(remotePath: String, userEmail: String? = null): List<RemoteFileItem> {
+    suspend fun listFilesAndFolders(
+        remotePath: String,
+        userEmail: String? = null,
+        forceRefresh: Boolean = false
+    ): List<RemoteFileItem> {
         return try {
             // Validate path (allow root path "/" as special case)
             if (remotePath != "/" && PathValidator.validateRelativePath(remotePath) == null) {
@@ -53,7 +59,21 @@ class RemoteFileManagerController(
                 return emptyList()
             }
 
+            // Build cache key including user email and hidden files preference
             val showHidden = HiddenFilesPreference.getShowHidden(context)
+            val cacheKey = buildCacheKey(remotePath, userEmail, showHidden)
+
+            // Check cache first (unless force refresh)
+            if (!forceRefresh) {
+                val cachedItems = RemoteFileCache.getCached(cacheKey)
+                if (cachedItems != null) {
+                    SafeLogger.d("RemoteFileManagerController", "Cache hit for: $remotePath")
+                    return cachedItems
+                }
+            }
+
+            // Cache miss or force refresh - fetch from server
+            SafeLogger.d("RemoteFileManagerController", "Fetching from server: $remotePath")
             val folders = webDavClient.listFolders(remotePath)
             val files = webDavClient.listFiles(remotePath)
 
@@ -95,11 +115,22 @@ class RemoteFileManagerController(
                 }
             }
 
+            // Store in cache
+            RemoteFileCache.put(cacheKey, items)
+            SafeLogger.d("RemoteFileManagerController", "Cached ${items.size} items for: $remotePath")
+
             items
         } catch (e: Exception) {
             SafeLogger.e("RemoteFileManagerController", "Failed to list files and folders", e)
             emptyList()
         }
+    }
+
+    /**
+     * Build cache key that includes path, user email, and hidden files preference.
+     */
+    private fun buildCacheKey(path: String, userEmail: String?, showHidden: Boolean): String {
+        return "${path}|${userEmail ?: "null"}|$showHidden"
     }
 
     /**

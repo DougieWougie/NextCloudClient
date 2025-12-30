@@ -39,19 +39,27 @@ class RemoteFileManagerViewModel(
             is RemoteFileManagerEvent.ToggleSelection -> toggleSelection(event.path)
             is RemoteFileManagerEvent.ExitMultiSelect -> exitMultiSelect()
             is RemoteFileManagerEvent.AddToSync -> addSelectedToSync()
+            is RemoteFileManagerEvent.Refresh -> refresh()
             is RemoteFileManagerEvent.ClearError -> clearError()
         }
     }
 
-    private fun loadFiles(path: String = "/") {
+    private fun loadFiles(path: String = "/", forceRefresh: Boolean = false) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            val loadingKey = if (forceRefresh) "isRefreshing" else "isLoading"
+            _uiState.update {
+                if (forceRefresh) {
+                    it.copy(isRefreshing = true, errorMessage = null)
+                } else {
+                    it.copy(isLoading = true, errorMessage = null)
+                }
+            }
 
             try {
                 // Get user email for hidden directory filtering
                 val userEmail = accountRepository.getActiveAccount()?.username
 
-                val items = controller.listFilesAndFolders(path, userEmail)
+                val items = controller.listFilesAndFolders(path, userEmail, forceRefresh)
                 val breadcrumbs = buildBreadcrumbs(path)
 
                 _uiState.update {
@@ -67,7 +75,8 @@ class RemoteFileManagerViewModel(
                             )
                         },
                         breadcrumbs = breadcrumbs,
-                        isLoading = false
+                        isLoading = false,
+                        isRefreshing = false
                     )
                 }
             } catch (e: Exception) {
@@ -75,11 +84,16 @@ class RemoteFileManagerViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
+                        isRefreshing = false,
                         errorMessage = "Failed to load files: ${e.message}"
                     )
                 }
             }
         }
+    }
+
+    private fun refresh() {
+        loadFiles(_uiState.value.currentPath, forceRefresh = true)
     }
 
     private fun navigateToFolder(folderName: String) {
@@ -212,6 +226,7 @@ data class RemoteFileManagerUiState(
     val isMultiSelectMode: Boolean = false,
     val selectedFiles: Set<String> = emptySet(),
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val errorMessage: String? = null
 )
 
@@ -236,5 +251,6 @@ sealed class RemoteFileManagerEvent {
     data class ToggleSelection(val path: String) : RemoteFileManagerEvent()
     object ExitMultiSelect : RemoteFileManagerEvent()
     object AddToSync : RemoteFileManagerEvent()
+    object Refresh : RemoteFileManagerEvent()
     object ClearError : RemoteFileManagerEvent()
 }

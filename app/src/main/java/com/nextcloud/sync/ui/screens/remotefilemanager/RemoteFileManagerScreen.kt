@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -76,57 +77,66 @@ fun RemoteFileManagerScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FileListContent(
     uiState: RemoteFileManagerUiState,
     onEvent: (RemoteFileManagerEvent) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        // Breadcrumb navigation
-        if (uiState.currentPath != "/") {
-            LazyRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                items(uiState.breadcrumbs) { breadcrumb ->
-                    FilterChip(
-                        selected = false,
-                        onClick = { onEvent(RemoteFileManagerEvent.NavigateToBreadcrumb(breadcrumb.path)) },
-                        label = { Text(breadcrumb.name) }
-                    )
-                }
-            }
-            HorizontalDivider()
-        }
-
-        // File list
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        PullToRefreshBox(
+            isRefreshing = uiState.isRefreshing,
+            onRefresh = { onEvent(RemoteFileManagerEvent.Refresh) },
+            modifier = Modifier.weight(1f)
         ) {
-            items(uiState.items) { item ->
-                RemoteFileCard(
-                    item = item,
-                    isSelected = uiState.selectedFiles.contains(item.path),
-                    isMultiSelectMode = uiState.isMultiSelectMode,
-                    onClick = {
-                        if (uiState.isMultiSelectMode) {
-                            onEvent(RemoteFileManagerEvent.ToggleSelection(item.path))
-                        } else {
-                            if (item.isDirectory) {
-                                onEvent(RemoteFileManagerEvent.NavigateToFolder(item.name))
-                            } else {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Breadcrumb navigation
+                if (uiState.currentPath != "/") {
+                    LazyRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(uiState.breadcrumbs) { breadcrumb ->
+                            FilterChip(
+                                selected = false,
+                                onClick = { onEvent(RemoteFileManagerEvent.NavigateToBreadcrumb(breadcrumb.path)) },
+                                label = { Text(breadcrumb.name) }
+                            )
+                        }
+                    }
+                    HorizontalDivider()
+                }
+
+                // File list
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(uiState.items) { item ->
+                        RemoteFileCard(
+                            item = item,
+                            isSelected = uiState.selectedFiles.contains(item.path),
+                            isMultiSelectMode = uiState.isMultiSelectMode,
+                            onClick = {
+                                if (uiState.isMultiSelectMode) {
+                                    onEvent(RemoteFileManagerEvent.ToggleSelection(item.path))
+                                } else {
+                                    if (item.isDirectory) {
+                                        onEvent(RemoteFileManagerEvent.NavigateToFolder(item.name))
+                                    } else {
+                                        onEvent(RemoteFileManagerEvent.LongPress(item.path))
+                                    }
+                                }
+                            },
+                            onLongClick = {
                                 onEvent(RemoteFileManagerEvent.LongPress(item.path))
                             }
-                        }
-                    },
-                    onLongClick = {
-                        onEvent(RemoteFileManagerEvent.LongPress(item.path))
+                        )
                     }
-                )
+                }
             }
         }
 
