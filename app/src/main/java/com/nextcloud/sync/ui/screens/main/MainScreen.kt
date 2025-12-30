@@ -57,19 +57,11 @@ import com.nextcloud.sync.ui.navigation.Screen
 fun SharedTransitionScope.MainScreen(
     viewModel: MainViewModel,
     navController: NavHostController,
-    animatedVisibilityScope: AnimatedVisibilityScope
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    onAddFolderClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
-    var menuExpanded by remember { mutableStateOf(false) }
-
-    // Show snackbar messages
-    LaunchedEffect(uiState.successMessage) {
-        uiState.successMessage?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.onEvent(MainEvent.MessageDismissed)
-        }
-    }
 
     // Refresh on resume
     LaunchedEffect(Unit) {
@@ -88,74 +80,17 @@ fun SharedTransitionScope.MainScreen(
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.app_name)) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                ),
-                actions = {
-                    IconButton(onClick = { navController.navigate(Screen.AddFolder.route) }) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Add folder"
-                        )
-                    }
-                    IconButton(onClick = { menuExpanded = true }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "More options"
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = menuExpanded,
-                        onDismissRequest = { menuExpanded = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Settings") },
-                            onClick = {
-                                menuExpanded = false
-                                navController.navigate(Screen.Settings.route)
-                            }
-                        )
-                    }
-                }
-            )
-        },
-        floatingActionButton = {
-            if (!uiState.isEmpty) {
-                ExtendedFloatingActionButton(
-                    onClick = { viewModel.onEvent(MainEvent.SyncAllClicked) },
-                    icon = {
-                        if (uiState.isSyncing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.padding(2.dp),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Icon(Icons.Default.Sync, contentDescription = null)
-                        }
-                    },
-                    text = { Text("Sync All") }
-                )
-            }
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { paddingValues ->
+    Box(modifier = modifier.fillMaxSize()) {
         if (uiState.isLoading) {
             LoadingIndicator()
         } else if (uiState.isEmpty) {
             EmptyStateWithAddButton(
-                onAddFolderClick = { navController.navigate(Screen.AddFolder.route) },
-                modifier = Modifier.padding(paddingValues)
+                onAddFolderClick = onAddFolderClick,
+                modifier = Modifier.fillMaxSize()
             )
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
+                modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -187,6 +122,27 @@ fun SharedTransitionScope.MainScreen(
                     )
                 }
             }
+        }
+
+        // Floating action button
+        if (!uiState.isEmpty) {
+            ExtendedFloatingActionButton(
+                onClick = { viewModel.onEvent(MainEvent.SyncAllClicked) },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp),
+                icon = {
+                    if (uiState.isSyncing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.padding(2.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(Icons.Default.Sync, contentDescription = null)
+                    }
+                },
+                text = { Text("Sync All") }
+            )
         }
     }
 }

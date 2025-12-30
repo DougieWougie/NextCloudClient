@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Settings
@@ -29,7 +30,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,7 +41,6 @@ import androidx.navigation.NavHostController
 import com.nextcloud.sync.models.database.AppDatabase
 import com.nextcloud.sync.models.repository.AccountRepository
 import com.nextcloud.sync.models.repository.FolderRepository
-import com.nextcloud.sync.ui.components.AppTopBar
 import com.nextcloud.sync.ui.navigation.Screen
 import com.nextcloud.sync.ui.screens.main.MainScreen
 import com.nextcloud.sync.ui.screens.main.MainViewModel
@@ -76,6 +75,12 @@ fun SharedTransitionScope.MainContainerScreen(
                     })
                 },
                 actions = {
+                    // Show Add Folder button only on Sync tab
+                    if (selectedTab == BottomNavDestination.Sync) {
+                        IconButton(onClick = { navController.navigate(Screen.AddFolder.route) }) {
+                            Icon(Icons.Default.Add, contentDescription = "Add folder")
+                        }
+                    }
                     IconButton(onClick = { navController.navigate(Screen.Settings.route) }) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
@@ -136,13 +141,13 @@ fun SharedTransitionScope.MainContainerScreen(
 
                 // Use AnimatedVisibility to provide AnimatedVisibilityScope for MainScreen
                 AnimatedVisibility(visible = true) {
-                    Box(modifier = Modifier.padding(paddingValues)) {
-                        MainScreen(
-                            viewModel = mainViewModel,
-                            navController = navController,
-                            animatedVisibilityScope = this@AnimatedVisibility
-                        )
-                    }
+                    MainScreen(
+                        viewModel = mainViewModel,
+                        navController = navController,
+                        animatedVisibilityScope = this@AnimatedVisibility,
+                        onAddFolderClick = { navController.navigate(Screen.AddFolder.route) },
+                        modifier = Modifier.padding(paddingValues)
+                    )
                 }
             }
         }
