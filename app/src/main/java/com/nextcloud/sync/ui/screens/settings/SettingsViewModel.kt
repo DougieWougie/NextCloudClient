@@ -21,9 +21,9 @@ data class SettingsUiState(
     val usernameError: String? = null,
     val defaultFolderNameError: String? = null,
     val currentTheme: String = ThemePreference.THEME_AUTO,
+    val themeDropdownExpanded: Boolean = false,
     val showHiddenFiles: Boolean = false,
     val isLoading: Boolean = true,
-    val showThemeDialog: Boolean = false,
     val showLogoutDialog: Boolean = false,
     val successMessage: String? = null,
     val shouldNavigateToLogin: Boolean = false
@@ -34,9 +34,8 @@ sealed class SettingsEvent {
     data class UsernameChanged(val username: String) : SettingsEvent()
     data class DefaultFolderNameChanged(val folderName: String) : SettingsEvent()
     object SaveClicked : SettingsEvent()
-    object ChangeThemeClicked : SettingsEvent()
     data class ThemeSelected(val theme: String) : SettingsEvent()
-    object ThemeDialogDismissed : SettingsEvent()
+    data class ThemeDropdownExpandedChanged(val expanded: Boolean) : SettingsEvent()
     data class ShowHiddenFilesToggled(val show: Boolean) : SettingsEvent()
     object LogoutClicked : SettingsEvent()
     object LogoutConfirmed : SettingsEvent()
@@ -70,20 +69,12 @@ class SettingsViewModel(
                 _uiState.update { it.copy(defaultFolderName = event.folderName, defaultFolderNameError = null) }
             }
             is SettingsEvent.SaveClicked -> saveSettings()
-            is SettingsEvent.ChangeThemeClicked -> {
-                _uiState.update { it.copy(showThemeDialog = true) }
-            }
             is SettingsEvent.ThemeSelected -> {
                 ThemePreference.setThemeMode(context, event.theme)
-                _uiState.update {
-                    it.copy(
-                        currentTheme = event.theme,
-                        showThemeDialog = false
-                    )
-                }
+                _uiState.update { it.copy(currentTheme = event.theme) }
             }
-            is SettingsEvent.ThemeDialogDismissed -> {
-                _uiState.update { it.copy(showThemeDialog = false) }
+            is SettingsEvent.ThemeDropdownExpandedChanged -> {
+                _uiState.update { it.copy(themeDropdownExpanded = event.expanded) }
             }
             is SettingsEvent.ShowHiddenFilesToggled -> {
                 HiddenFilesPreference.setShowHidden(context, event.show)

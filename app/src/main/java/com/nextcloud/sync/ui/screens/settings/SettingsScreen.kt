@@ -12,15 +12,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -68,14 +70,6 @@ fun SettingsScreen(
         }
     }
 
-    // Theme selection dialog
-    if (uiState.showThemeDialog) {
-        ThemeSelectionDialog(
-            currentTheme = uiState.currentTheme,
-            onThemeSelected = { viewModel.onEvent(SettingsEvent.ThemeSelected(it)) },
-            onDismiss = { viewModel.onEvent(SettingsEvent.ThemeDialogDismissed) }
-        )
-    }
 
     // Logout confirmation dialog
     if (uiState.showLogoutDialog) {
@@ -241,37 +235,47 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
+                ExposedDropdownMenuBox(
+                    expanded = uiState.themeDropdownExpanded,
+                    onExpandedChange = { viewModel.onEvent(SettingsEvent.ThemeDropdownExpandedChanged(it)) }
                 ) {
-                    Row(
+                    OutlinedTextField(
+                        value = ThemePreference.getThemeDisplayName(uiState.currentTheme),
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Theme") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = uiState.themeDropdownExpanded) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { viewModel.onEvent(SettingsEvent.ChangeThemeClicked) }
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = uiState.themeDropdownExpanded,
+                        onDismissRequest = { viewModel.onEvent(SettingsEvent.ThemeDropdownExpandedChanged(false)) }
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Theme",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                text = ThemePreference.getThemeDisplayName(uiState.currentTheme),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        TextButton(
-                            onClick = { viewModel.onEvent(SettingsEvent.ChangeThemeClicked) }
-                        ) {
-                            Text("Change")
-                        }
+                        DropdownMenuItem(
+                            text = { Text("Auto (System)") },
+                            onClick = {
+                                viewModel.onEvent(SettingsEvent.ThemeSelected(ThemePreference.THEME_AUTO))
+                                viewModel.onEvent(SettingsEvent.ThemeDropdownExpandedChanged(false))
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Light") },
+                            onClick = {
+                                viewModel.onEvent(SettingsEvent.ThemeSelected(ThemePreference.THEME_LIGHT))
+                                viewModel.onEvent(SettingsEvent.ThemeDropdownExpandedChanged(false))
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Dark") },
+                            onClick = {
+                                viewModel.onEvent(SettingsEvent.ThemeSelected(ThemePreference.THEME_DARK))
+                                viewModel.onEvent(SettingsEvent.ThemeDropdownExpandedChanged(false))
+                            }
+                        )
                     }
                 }
 
@@ -305,48 +309,3 @@ fun SettingsScreen(
     }
 }
 
-@Composable
-private fun ThemeSelectionDialog(
-    currentTheme: String,
-    onThemeSelected: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val themes = listOf(
-        ThemePreference.THEME_AUTO to "Auto (System)",
-        ThemePreference.THEME_LIGHT to "Light",
-        ThemePreference.THEME_DARK to "Dark"
-    )
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Choose Theme") },
-        text = {
-            Column {
-                themes.forEach { (value, label) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onThemeSelected(value) }
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = currentTheme == value,
-                            onClick = { onThemeSelected(value) }
-                        )
-                        Text(
-                            text = label,
-                            modifier = Modifier.padding(start = 8.dp)
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
-}
