@@ -11,7 +11,9 @@ import com.nextcloud.sync.models.database.entities.FolderEntity
 import com.nextcloud.sync.models.repository.AccountRepository
 import com.nextcloud.sync.models.repository.FileRepository
 import com.nextcloud.sync.models.repository.FolderRepository
+import com.nextcloud.sync.services.workers.SyncWorker
 import com.nextcloud.sync.utils.SafeLogger
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,6 +47,7 @@ class LocalFileManagerViewModel(
             is LocalFileManagerEvent.RenameFile -> renameFile(event.filePath, event.newName)
             is LocalFileManagerEvent.CopyFile -> copyFile(event.filePath, event.destinationPath)
             is LocalFileManagerEvent.MoveFile -> moveFile(event.filePath, event.destinationPath)
+            is LocalFileManagerEvent.TriggerSync -> triggerSync()
             is LocalFileManagerEvent.ClearError -> clearError()
         }
     }
@@ -282,6 +285,31 @@ class LocalFileManagerViewModel(
         _uiState.update { it.copy(errorMessage = null) }
     }
 
+    private fun triggerSync() {
+        viewModelScope.launch {
+            try {
+                SafeLogger.d("LocalFileManagerViewModel", "Triggering immediate sync")
+                SyncWorker.scheduleImmediate(context)
+
+                // Show start toast
+                android.widget.Toast.makeText(context, "Sync started", android.widget.Toast.LENGTH_SHORT).show()
+
+                // Wait for sync to complete (simulating sync completion)
+                delay(5000)
+
+                // Refresh file list after sync
+                _uiState.value.selectedFolder?.let { selectFolder(it) }
+
+                // Show completion toast
+                android.widget.Toast.makeText(context, "Sync completed", android.widget.Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                SafeLogger.e("LocalFileManagerViewModel", "Failed to trigger sync", e)
+                _uiState.update { it.copy(errorMessage = "Failed to trigger sync: ${e.message}") }
+                android.widget.Toast.makeText(context, "Sync failed: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
     class Factory(private val context: Context) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -336,5 +364,6 @@ sealed class LocalFileManagerEvent {
     data class RenameFile(val filePath: String, val newName: String) : LocalFileManagerEvent()
     data class CopyFile(val filePath: String, val destinationPath: String) : LocalFileManagerEvent()
     data class MoveFile(val filePath: String, val destinationPath: String) : LocalFileManagerEvent()
+    object TriggerSync : LocalFileManagerEvent()
     object ClearError : LocalFileManagerEvent()
 }

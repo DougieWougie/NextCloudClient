@@ -155,9 +155,15 @@ private fun FileListContent(
                 }
             },
             actions = {
+                IconButton(onClick = { onEvent(LocalFileManagerEvent.TriggerSync) }) {
+                    Icon(
+                        imageVector = Icons.Default.Sync,
+                        contentDescription = "Trigger sync"
+                    )
+                }
                 IconButton(onClick = { onEvent(LocalFileManagerEvent.ToggleMultiSelectMode) }) {
                     Icon(
-                        imageVector = if (uiState.isMultiSelectMode) Icons.Default.Close else Icons.Default.CheckCircle,
+                        imageVector = if (uiState.isMultiSelectMode) Icons.Default.Close else Icons.Filled.Checklist,
                         contentDescription = if (uiState.isMultiSelectMode) "Exit multi-select" else "Multi-select",
                         tint = if (uiState.isMultiSelectMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                     )

@@ -311,11 +311,17 @@ class LocalFileManagerController(
                 SafeLogger.d("LocalFileManagerController", "File rename result: $result, from ${file.absolutePath} to ${newFile.absolutePath}")
 
                 if (result) {
-                    // Update database with new path
+                    // Update database with new path, filename, remote path, and mark for sync
                     fileRepository.getFileByLocalPath(filePath)?.let { dbFile: FileEntity ->
                         val newPath = newFile.absolutePath
-                        SafeLogger.d("LocalFileManagerController", "Updating database path from $filePath to $newPath")
-                        fileRepository.update(dbFile.copy(localPath = newPath))
+                        val newRemotePath = dbFile.remotePath.substringBeforeLast("/") + "/" + newName
+                        SafeLogger.d("LocalFileManagerController", "Updating database: localPath=$newPath, remotePath=$newRemotePath, fileName=$newName")
+                        fileRepository.update(dbFile.copy(
+                            localPath = newPath,
+                            remotePath = newRemotePath,
+                            fileName = newName,
+                            syncStatus = SyncStatus.PENDING_UPLOAD
+                        ))
                     }
                 }
 
@@ -426,10 +432,16 @@ class LocalFileManagerController(
                 return false
             }
 
-            // Update database with new URI
-            fileRepository.update(dbFile.copy(localPath = newFile.uri.toString()))
+            // Update database with new URI, filename, remote path, and mark for sync
+            val newRemotePath = dbFile.remotePath.substringBeforeLast("/") + "/" + newName
+            fileRepository.update(dbFile.copy(
+                localPath = newFile.uri.toString(),
+                remotePath = newRemotePath,
+                fileName = newName,
+                syncStatus = SyncStatus.PENDING_UPLOAD
+            ))
 
-            SafeLogger.d("LocalFileManagerController", "Successfully renamed content URI file from $filePath to ${newFile.uri}")
+            SafeLogger.d("LocalFileManagerController", "Successfully renamed content URI file from $filePath to ${newFile.uri}, remotePath=$newRemotePath, and marked for upload")
             true
         } catch (e: Exception) {
             SafeLogger.e("LocalFileManagerController", "Failed to rename content URI: $filePath", e)
