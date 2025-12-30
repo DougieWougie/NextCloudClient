@@ -225,15 +225,20 @@ class LocalFileManagerViewModel(
     private fun renameFile(filePath: String, newName: String) {
         viewModelScope.launch {
             try {
+                SafeLogger.d("LocalFileManagerViewModel", "Renaming file: $filePath to $newName")
                 val success = controller.renameFile(filePath, newName)
                 if (success) {
+                    SafeLogger.d("LocalFileManagerViewModel", "Rename successful, refreshing file list")
                     // Refresh file list
                     _uiState.value.selectedFolder?.let { selectFolder(it) }
                 } else {
-                    _uiState.update { it.copy(errorMessage = "Failed to rename file") }
+                    SafeLogger.e("LocalFileManagerViewModel", "Rename failed for: $filePath to $newName")
+                    _uiState.update {
+                        it.copy(errorMessage = "Failed to rename file. Check logcat for details.")
+                    }
                 }
             } catch (e: Exception) {
-                SafeLogger.e("LocalFileManagerViewModel", "Failed to rename file", e)
+                SafeLogger.e("LocalFileManagerViewModel", "Failed to rename file: $filePath to $newName", e)
                 _uiState.update { it.copy(errorMessage = "Failed to rename: ${e.message}") }
             }
         }

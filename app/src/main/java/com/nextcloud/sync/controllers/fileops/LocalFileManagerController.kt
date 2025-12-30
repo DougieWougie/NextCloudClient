@@ -286,35 +286,205 @@ class LocalFileManagerController(
      */
     suspend fun renameFile(filePath: String, newName: String): Boolean {
         return try {
+            SafeLogger.d("LocalFileManagerController", "Attempting to rename: $filePath to $newName")
+
             val renamed = if (filePath.startsWith("content://")) {
-                val uri = Uri.parse(filePath)
-                val documentFile = DocumentFile.fromSingleUri(context, uri)
-                documentFile?.renameTo(newName) ?: false
+                // For content URIs, use copy+delete approach since SingleDocumentFile.renameTo() is not supported
+                renameContentUri(filePath, newName)
             } else {
                 val file = File(filePath)
-                val newFile = File(file.parent, newName)
-                file.renameTo(newFile)
+                if (!file.exists()) {
+                    SafeLogger.e("LocalFileManagerController", "File does not exist: $filePath")
+                    return false
+                }
+                val parent = file.parentFile
+                if (parent == null) {
+                    SafeLogger.e("LocalFileManagerController", "Parent directory is null for: $filePath")
+                    return false
+                }
+                val newFile = File(parent, newName)
+                if (newFile.exists()) {
+                    SafeLogger.e("LocalFileManagerController", "Target file already exists: ${newFile.absolutePath}")
+                    return false
+                }
+                val result = file.renameTo(newFile)
+                SafeLogger.d("LocalFileManagerController", "File rename result: $result, from ${file.absolutePath} to ${newFile.absolutePath}")
+
+                if (result) {
+                    // Update database with new path
+                    fileRepository.getFileByLocalPath(filePath)?.let { dbFile: FileEntity ->
+                        val newPath = newFile.absolutePath
+                        SafeLogger.d("LocalFileManagerController", "Updating database path from $filePath to $newPath")
+                        fileRepository.update(dbFile.copy(localPath = newPath))
+                    }
+                }
+
+                result
             }
 
             if (renamed) {
-                // Update database
-                fileRepository.getFileByLocalPath(filePath)?.let { dbFile: FileEntity ->
-                    val newPath = if (filePath.startsWith("content://")) {
-                        // For content URIs, we need to rebuild the path
-                        filePath.substringBeforeLast("/") + "/" + newName
-                    } else {
-                        File(File(filePath).parent, newName).absolutePath
-                    }
-                    fileRepository.update(dbFile.copy(localPath = newPath))
-                }
-                SafeLogger.d("LocalFileManagerController", "Renamed file: $filePath to $newName")
+                SafeLogger.d("LocalFileManagerController", "Successfully renamed file: $filePath to $newName")
+            } else {
+                SafeLogger.w("LocalFileManagerController", "Rename returned false for: $filePath to $newName")
             }
 
             renamed
         } catch (e: Exception) {
-            SafeLogger.e("LocalFileManagerController", "Failed to rename file", e)
+            SafeLogger.e("LocalFileManagerController", "Failed to rename file: $filePath to $newName", e)
             false
         }
+    }
+
+    /**
+     * Rename a content URI file using copy+delete approach.
+     * SingleDocumentFile.renameTo() is not supported, so we need to:
+     * 1. Get the parent folder's tree URI
+     * 2. Create a new file with the new name
+     * 3. Copy the content
+     * 4. Delete the old file
+     * 5. Update the database
+     */
+    private suspend fun renameContentUri(filePath: String, newName: String): Boolean {
+        return try {
+            val sourceUri = Uri.parse(filePath)
+            val sourceFile = DocumentFile.fromSingleUri(context, sourceUri)
+
+            if (sourceFile == null || !sourceFile.exists()) {
+                SafeLogger.e("LocalFileManagerController", "Source file does not exist: $filePath")
+                return false
+            }
+
+            // Get the folder that contains this file to find the tree URI
+            val dbFile = fileRepository.getFileByLocalPath(filePath)
+            if (dbFile == null) {
+                SafeLogger.e("LocalFileManagerController", "File not found in database: $filePath")
+                return false
+            }
+
+            val folder = folderRepository.getFolderById(dbFile.folderId)
+            if (folder == null) {
+                SafeLogger.e("LocalFileManagerController", "Folder not found for file: $filePath")
+                return false
+            }
+
+            val treeUri = folder.localPath
+            if (!treeUri.startsWith("content://")) {
+                SafeLogger.e("LocalFileManagerController", "Expected content URI for folder, got: $treeUri")
+                return false
+            }
+
+            // Get the parent directory DocumentFile
+            val rootDoc = DocumentFile.fromTreeUri(context, Uri.parse(treeUri))
+            if (rootDoc == null) {
+                SafeLogger.e("LocalFileManagerController", "Could not get root DocumentFile from tree URI: $treeUri")
+                return false
+            }
+
+            // Find the parent directory by traversing the path
+            val relativePath = getRelativePath(sourceFile.uri, rootDoc.uri)
+            val parentDoc = if (relativePath.contains("/")) {
+                // Navigate to parent directory
+                navigateToParentDirectory(rootDoc, relativePath)
+            } else {
+                // File is in root directory
+                rootDoc
+            }
+
+            if (parentDoc == null) {
+                SafeLogger.e("LocalFileManagerController", "Could not find parent directory for: $filePath")
+                return false
+            }
+
+            // Check if file with new name already exists
+            val existingFile = parentDoc.findFile(newName)
+            if (existingFile != null && existingFile.exists()) {
+                SafeLogger.e("LocalFileManagerController", "File with new name already exists: $newName")
+                return false
+            }
+
+            // Create new file with new name
+            val mimeType = sourceFile.type ?: "application/octet-stream"
+            val newFile = parentDoc.createFile(mimeType, newName)
+            if (newFile == null) {
+                SafeLogger.e("LocalFileManagerController", "Failed to create new file: $newName")
+                return false
+            }
+
+            // Copy content from old file to new file
+            context.contentResolver.openInputStream(sourceUri)?.use { input ->
+                context.contentResolver.openOutputStream(newFile.uri)?.use { output ->
+                    input.copyTo(output)
+                }
+            }
+
+            // Delete old file
+            val deleted = sourceFile.delete()
+            if (!deleted) {
+                SafeLogger.w("LocalFileManagerController", "Failed to delete old file after rename: $filePath")
+                // Attempt to delete the new file to rollback
+                newFile.delete()
+                return false
+            }
+
+            // Update database with new URI
+            fileRepository.update(dbFile.copy(localPath = newFile.uri.toString()))
+
+            SafeLogger.d("LocalFileManagerController", "Successfully renamed content URI file from $filePath to ${newFile.uri}")
+            true
+        } catch (e: Exception) {
+            SafeLogger.e("LocalFileManagerController", "Failed to rename content URI: $filePath", e)
+            false
+        }
+    }
+
+    /**
+     * Get relative path from a file URI to a root URI.
+     */
+    private fun getRelativePath(fileUri: Uri, rootUri: Uri): String {
+        val filePathSegments = fileUri.toString().split("/")
+        val rootPathSegments = rootUri.toString().split("/")
+
+        // Find the common prefix and extract the relative part
+        val fileName = filePathSegments.lastOrNull() ?: ""
+
+        // Extract the path after the document ID
+        val fileUriStr = fileUri.toString()
+        val docIdStart = fileUriStr.indexOf("/document/")
+        if (docIdStart != -1) {
+            val docId = fileUriStr.substring(docIdStart + "/document/".length)
+            // DocId format is typically "primary:path/to/file"
+            val colonIndex = docId.indexOf(":")
+            if (colonIndex != -1) {
+                return docId.substring(colonIndex + 1)
+            }
+        }
+
+        return fileName
+    }
+
+    /**
+     * Navigate to parent directory from root DocumentFile.
+     */
+    private fun navigateToParentDirectory(rootDoc: DocumentFile, relativePath: String): DocumentFile? {
+        val pathParts = relativePath.split("/")
+        if (pathParts.isEmpty()) return rootDoc
+
+        // Remove the filename, leaving only directory parts
+        val directoryParts = pathParts.dropLast(1)
+
+        var currentDoc = rootDoc
+        for (dirName in directoryParts) {
+            if (dirName.isEmpty()) continue
+
+            val nextDoc = currentDoc.findFile(dirName)
+            if (nextDoc == null || !nextDoc.isDirectory) {
+                SafeLogger.e("LocalFileManagerController", "Could not navigate to directory: $dirName")
+                return null
+            }
+            currentDoc = nextDoc
+        }
+
+        return currentDoc
     }
 
     /**

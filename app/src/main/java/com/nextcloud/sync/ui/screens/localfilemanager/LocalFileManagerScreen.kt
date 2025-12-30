@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -12,6 +14,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -252,6 +256,74 @@ private fun LocalFileCard(
     onMove: (String) -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showCopyDialog by remember { mutableStateOf(false) }
+    var showMoveDialog by remember { mutableStateOf(false) }
+
+    // Rename dialog
+    if (showRenameDialog) {
+        RenameFileDialog(
+            currentName = file.name,
+            onConfirm = { newName ->
+                showRenameDialog = false
+                if (newName.isNotBlank() && newName != file.name) {
+                    onRename(newName)
+                }
+            },
+            onDismiss = { showRenameDialog = false }
+        )
+    }
+
+    // Delete confirmation dialog
+    if (showDeleteDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete File") },
+            text = { Text("Are you sure you want to delete \"${file.name}\"? This action cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDelete()
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Copy destination dialog
+    if (showCopyDialog) {
+        DestinationPickerDialog(
+            title = "Copy to",
+            fileName = file.name,
+            onConfirm = { destination ->
+                showCopyDialog = false
+                onCopy(destination)
+            },
+            onDismiss = { showCopyDialog = false }
+        )
+    }
+
+    // Move destination dialog
+    if (showMoveDialog) {
+        DestinationPickerDialog(
+            title = "Move to",
+            fileName = file.name,
+            onConfirm = { destination ->
+                showMoveDialog = false
+                onMove(destination)
+            },
+            onDismiss = { showMoveDialog = false }
+        )
+    }
 
     Card(
         modifier = Modifier
@@ -353,32 +425,30 @@ private fun LocalFileCard(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Delete") },
-                            onClick = {
-                                showMenu = false
-                                onDelete()
-                            },
-                            leadingIcon = {
-                                Icon(Icons.Default.Delete, contentDescription = null)
-                            }
-                        )
-                        DropdownMenuItem(
                             text = { Text("Rename") },
                             onClick = {
                                 showMenu = false
-                                // TODO: Show rename dialog
-                                onRename(file.name + "_renamed")
+                                showRenameDialog = true
                             },
                             leadingIcon = {
                                 Icon(Icons.Default.Edit, contentDescription = null)
                             }
                         )
                         DropdownMenuItem(
+                            text = { Text("Delete") },
+                            onClick = {
+                                showMenu = false
+                                showDeleteDialog = true
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                            }
+                        )
+                        DropdownMenuItem(
                             text = { Text("Copy") },
                             onClick = {
                                 showMenu = false
-                                // TODO: Show destination picker
-                                onCopy("/destination")
+                                showCopyDialog = true
                             },
                             leadingIcon = {
                                 Icon(Icons.Default.ContentCopy, contentDescription = null)
@@ -388,8 +458,7 @@ private fun LocalFileCard(
                             text = { Text("Move") },
                             onClick = {
                                 showMenu = false
-                                // TODO: Show destination picker
-                                onMove("/destination")
+                                showMoveDialog = true
                             },
                             leadingIcon = {
                                 Icon(Icons.Default.DriveFileMove, contentDescription = null)
@@ -400,6 +469,137 @@ private fun LocalFileCard(
             }
         }
     }
+}
+
+@Composable
+private fun RenameFileDialog(
+    currentName: String,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var newName by remember { mutableStateOf(currentName) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Rename File") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = newName,
+                    onValueChange = {
+                        newName = it
+                        error = when {
+                            it.isBlank() -> "Filename cannot be empty"
+                            it.contains("/") || it.contains("\\") -> "Invalid characters in filename"
+                            else -> null
+                        }
+                    },
+                    label = { Text("New filename") },
+                    isError = error != null,
+                    supportingText = error?.let { { Text(it) } },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            if (error == null && newName.isNotBlank()) {
+                                onConfirm(newName.trim())
+                            }
+                        }
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(newName.trim()) },
+                enabled = error == null && newName.isNotBlank()
+            ) {
+                Text("Rename")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+private fun DestinationPickerDialog(
+    title: String,
+    fileName: String,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var destinationPath by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column {
+                Text(
+                    text = "File: $fileName",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                OutlinedTextField(
+                    value = destinationPath,
+                    onValueChange = {
+                        destinationPath = it
+                        error = when {
+                            it.isBlank() -> "Destination path cannot be empty"
+                            else -> null
+                        }
+                    },
+                    label = { Text("Destination folder path") },
+                    placeholder = { Text("/path/to/folder") },
+                    isError = error != null,
+                    supportingText = error?.let { { Text(it) } },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            if (error == null && destinationPath.isNotBlank()) {
+                                onConfirm(destinationPath.trim())
+                            }
+                        }
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    text = "Enter the full path to the destination folder",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(destinationPath.trim()) },
+                enabled = error == null && destinationPath.isNotBlank()
+            ) {
+                Text(title.substringBefore(" ")) // "Copy" or "Move"
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @Composable
