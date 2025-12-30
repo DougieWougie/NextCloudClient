@@ -143,33 +143,44 @@ private fun FileListContent(
     onEvent: (LocalFileManagerEvent) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        // Header with back button and multi-select toggle
-        TopAppBar(
-            title = {
-                val folderName = uiState.selectedFolder?.remotePath?.substringAfterLast('/')?.ifEmpty { "Root" } ?: "Files"
-                Text(folderName)
-            },
-            navigationIcon = {
-                IconButton(onClick = { onEvent(LocalFileManagerEvent.NavigateBack) }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                }
-            },
-            actions = {
-                IconButton(onClick = { onEvent(LocalFileManagerEvent.TriggerSync) }) {
-                    Icon(
-                        imageVector = Icons.Default.Sync,
-                        contentDescription = "Trigger sync"
+        // Action bar with back button and actions
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            tonalElevation = 3.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { onEvent(LocalFileManagerEvent.NavigateBack) }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                    Text(
+                        text = uiState.selectedFolder?.remotePath?.substringAfterLast('/')?.ifEmpty { "Root" } ?: "Files",
+                        style = MaterialTheme.typography.titleLarge
                     )
                 }
-                IconButton(onClick = { onEvent(LocalFileManagerEvent.ToggleMultiSelectMode) }) {
-                    Icon(
-                        imageVector = if (uiState.isMultiSelectMode) Icons.Default.Close else Icons.Filled.Checklist,
-                        contentDescription = if (uiState.isMultiSelectMode) "Exit multi-select" else "Multi-select",
-                        tint = if (uiState.isMultiSelectMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                    )
+                Row {
+                    IconButton(onClick = { onEvent(LocalFileManagerEvent.TriggerSync) }) {
+                        Icon(
+                            imageVector = Icons.Default.Sync,
+                            contentDescription = "Trigger sync"
+                        )
+                    }
+                    IconButton(onClick = { onEvent(LocalFileManagerEvent.ToggleMultiSelectMode) }) {
+                        Icon(
+                            imageVector = if (uiState.isMultiSelectMode) Icons.Default.Close else Icons.Filled.Checklist,
+                            contentDescription = if (uiState.isMultiSelectMode) "Exit multi-select" else "Multi-select",
+                            tint = if (uiState.isMultiSelectMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             }
-        )
+        }
 
         if (uiState.files.isEmpty()) {
             // Empty state
