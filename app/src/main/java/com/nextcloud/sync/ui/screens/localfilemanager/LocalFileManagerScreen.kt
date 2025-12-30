@@ -117,7 +117,7 @@ private fun FolderCard(
                     style = MaterialTheme.typography.bodyLarge
                 )
                 Text(
-                    text = folder.localPath,
+                    text = folder.remotePath,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
