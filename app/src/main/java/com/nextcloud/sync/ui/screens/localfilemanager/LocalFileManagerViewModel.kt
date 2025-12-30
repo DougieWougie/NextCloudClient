@@ -35,9 +35,16 @@ class LocalFileManagerViewModel(
         when (event) {
             is LocalFileManagerEvent.SelectFolder -> selectFolder(event.folder)
             is LocalFileManagerEvent.NavigateBack -> navigateBack()
-            is LocalFileManagerEvent.LongPress -> enterMultiSelect(event.filePath)
+            is LocalFileManagerEvent.ToggleMultiSelectMode -> toggleMultiSelectMode()
             is LocalFileManagerEvent.ToggleSelection -> toggleSelection(event.filePath)
             is LocalFileManagerEvent.ExitMultiSelect -> exitMultiSelect()
+            is LocalFileManagerEvent.FileClicked -> handleFileClick(event.file)
+            is LocalFileManagerEvent.DownloadFile -> downloadFile(event.filePath)
+            is LocalFileManagerEvent.OpenFile -> openFile(event.filePath)
+            is LocalFileManagerEvent.DeleteFile -> deleteFile(event.filePath)
+            is LocalFileManagerEvent.RenameFile -> renameFile(event.filePath, event.newName)
+            is LocalFileManagerEvent.CopyFile -> copyFile(event.filePath, event.destinationPath)
+            is LocalFileManagerEvent.MoveFile -> moveFile(event.filePath, event.destinationPath)
             is LocalFileManagerEvent.ClearError -> clearError()
         }
     }
@@ -87,7 +94,8 @@ class LocalFileManagerViewModel(
                         size = file.size,
                         lastModified = file.lastModified,
                         isDirectory = file.isDirectory,
-                        syncStatus = file.syncStatus.name
+                        syncStatus = file.syncStatus.name,
+                        mimeType = file.mimeType
                     )
                 }
                 _uiState.update {
@@ -120,11 +128,11 @@ class LocalFileManagerViewModel(
         }
     }
 
-    private fun enterMultiSelect(filePath: String) {
+    private fun toggleMultiSelectMode() {
         _uiState.update {
             it.copy(
-                isMultiSelectMode = true,
-                selectedFiles = setOf(filePath)
+                isMultiSelectMode = !it.isMultiSelectMode,
+                selectedFiles = if (!it.isMultiSelectMode) emptySet() else it.selectedFiles
             )
         }
     }
@@ -146,6 +154,122 @@ class LocalFileManagerViewModel(
                 isMultiSelectMode = false,
                 selectedFiles = emptySet()
             )
+        }
+    }
+
+    private fun handleFileClick(file: LocalFileItem) {
+        // If file is synced (downloaded), open it; otherwise download it
+        if (file.syncStatus == SyncStatus.SYNCED.name) {
+            openFile(file.path)
+        } else {
+            downloadFile(file.path)
+        }
+    }
+
+    private fun downloadFile(filePath: String) {
+        viewModelScope.launch {
+            try {
+                val folderId = _uiState.value.selectedFolder?.id ?: return@launch
+                val success = controller.downloadFile(filePath, folderId)
+                if (success) {
+                    // Refresh file list to show updated status
+                    _uiState.value.selectedFolder?.let { selectFolder(it) }
+                } else {
+                    _uiState.update { it.copy(errorMessage = "Failed to mark file for download") }
+                }
+            } catch (e: Exception) {
+                SafeLogger.e("LocalFileManagerViewModel", "Failed to download file", e)
+                _uiState.update { it.copy(errorMessage = "Failed to download: ${e.message}") }
+            }
+        }
+    }
+
+    private fun openFile(filePath: String) {
+        try {
+            // Find the file to get its MIME type
+            val file = _uiState.value.files.find { it.path == filePath }
+            if (file == null) {
+                _uiState.update { it.copy(errorMessage = "File not found") }
+                return
+            }
+
+            val intent = controller.createOpenFileIntent(filePath, file.mimeType)
+            if (intent != null) {
+                context.startActivity(intent)
+            } else {
+                _uiState.update { it.copy(errorMessage = "No app found to open this file") }
+            }
+        } catch (e: Exception) {
+            SafeLogger.e("LocalFileManagerViewModel", "Failed to open file", e)
+            _uiState.update { it.copy(errorMessage = "Failed to open: ${e.message}") }
+        }
+    }
+
+    private fun deleteFile(filePath: String) {
+        viewModelScope.launch {
+            try {
+                val success = controller.deleteFile(filePath)
+                if (success) {
+                    // Refresh file list
+                    _uiState.value.selectedFolder?.let { selectFolder(it) }
+                } else {
+                    _uiState.update { it.copy(errorMessage = "Failed to delete file") }
+                }
+            } catch (e: Exception) {
+                SafeLogger.e("LocalFileManagerViewModel", "Failed to delete file", e)
+                _uiState.update { it.copy(errorMessage = "Failed to delete: ${e.message}") }
+            }
+        }
+    }
+
+    private fun renameFile(filePath: String, newName: String) {
+        viewModelScope.launch {
+            try {
+                val success = controller.renameFile(filePath, newName)
+                if (success) {
+                    // Refresh file list
+                    _uiState.value.selectedFolder?.let { selectFolder(it) }
+                } else {
+                    _uiState.update { it.copy(errorMessage = "Failed to rename file") }
+                }
+            } catch (e: Exception) {
+                SafeLogger.e("LocalFileManagerViewModel", "Failed to rename file", e)
+                _uiState.update { it.copy(errorMessage = "Failed to rename: ${e.message}") }
+            }
+        }
+    }
+
+    private fun copyFile(filePath: String, destinationPath: String) {
+        viewModelScope.launch {
+            try {
+                val success = controller.copyFile(filePath, destinationPath)
+                if (success) {
+                    // Optionally refresh file list
+                    _uiState.value.selectedFolder?.let { selectFolder(it) }
+                } else {
+                    _uiState.update { it.copy(errorMessage = "Failed to copy file") }
+                }
+            } catch (e: Exception) {
+                SafeLogger.e("LocalFileManagerViewModel", "Failed to copy file", e)
+                _uiState.update { it.copy(errorMessage = "Failed to copy: ${e.message}") }
+            }
+        }
+    }
+
+    private fun moveFile(filePath: String, destinationPath: String) {
+        viewModelScope.launch {
+            try {
+                val success = controller.moveFile(filePath, destinationPath)
+                if (success) {
+                    // Refresh file list
+                    _uiState.value.selectedFolder?.let { selectFolder(it) }
+                } else {
+                    _uiState.update { it.copy(errorMessage = "Failed to move file") }
+                }
+            } catch (e: Exception) {
+                SafeLogger.e("LocalFileManagerViewModel", "Failed to move file", e)
+                _uiState.update { it.copy(errorMessage = "Failed to move: ${e.message}") }
+            }
         }
     }
 
@@ -189,15 +313,23 @@ data class LocalFileItem(
     val size: Long,
     val lastModified: Long,
     val isDirectory: Boolean,
-    val syncStatus: String
+    val syncStatus: String,
+    val mimeType: String = "application/octet-stream"
 )
 
 // Events
 sealed class LocalFileManagerEvent {
     data class SelectFolder(val folder: FolderEntity) : LocalFileManagerEvent()
     object NavigateBack : LocalFileManagerEvent()
-    data class LongPress(val filePath: String) : LocalFileManagerEvent()
+    object ToggleMultiSelectMode : LocalFileManagerEvent()
     data class ToggleSelection(val filePath: String) : LocalFileManagerEvent()
     object ExitMultiSelect : LocalFileManagerEvent()
+    data class FileClicked(val file: LocalFileItem) : LocalFileManagerEvent()
+    data class DownloadFile(val filePath: String) : LocalFileManagerEvent()
+    data class OpenFile(val filePath: String) : LocalFileManagerEvent()
+    data class DeleteFile(val filePath: String) : LocalFileManagerEvent()
+    data class RenameFile(val filePath: String, val newName: String) : LocalFileManagerEvent()
+    data class CopyFile(val filePath: String, val destinationPath: String) : LocalFileManagerEvent()
+    data class MoveFile(val filePath: String, val destinationPath: String) : LocalFileManagerEvent()
     object ClearError : LocalFileManagerEvent()
 }

@@ -139,7 +139,7 @@ private fun FileListContent(
     onEvent: (LocalFileManagerEvent) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        // Header with back button
+        // Header with back button and multi-select toggle
         TopAppBar(
             title = {
                 val folderName = uiState.selectedFolder?.remotePath?.substringAfterLast('/')?.ifEmpty { "Root" } ?: "Files"
@@ -148,6 +148,15 @@ private fun FileListContent(
             navigationIcon = {
                 IconButton(onClick = { onEvent(LocalFileManagerEvent.NavigateBack) }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+            },
+            actions = {
+                IconButton(onClick = { onEvent(LocalFileManagerEvent.ToggleMultiSelectMode) }) {
+                    Icon(
+                        imageVector = if (uiState.isMultiSelectMode) Icons.Default.Close else Icons.Default.CheckCircle,
+                        contentDescription = if (uiState.isMultiSelectMode) "Exit multi-select" else "Multi-select",
+                        tint = if (uiState.isMultiSelectMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
         )
@@ -195,11 +204,15 @@ private fun FileListContent(
                         onClick = {
                             if (uiState.isMultiSelectMode) {
                                 onEvent(LocalFileManagerEvent.ToggleSelection(file.path))
+                            } else {
+                                onEvent(LocalFileManagerEvent.FileClicked(file))
                             }
                         },
-                        onLongClick = {
-                            onEvent(LocalFileManagerEvent.LongPress(file.path))
-                        }
+                        onDownload = { onEvent(LocalFileManagerEvent.DownloadFile(file.path)) },
+                        onDelete = { onEvent(LocalFileManagerEvent.DeleteFile(file.path)) },
+                        onRename = { newName -> onEvent(LocalFileManagerEvent.RenameFile(file.path, newName)) },
+                        onCopy = { dest -> onEvent(LocalFileManagerEvent.CopyFile(file.path, dest)) },
+                        onMove = { dest -> onEvent(LocalFileManagerEvent.MoveFile(file.path, dest)) }
                     )
                 }
             }
@@ -232,13 +245,18 @@ private fun LocalFileCard(
     isSelected: Boolean,
     isMultiSelectMode: Boolean,
     onClick: () -> Unit,
-    onLongClick: () -> Unit
+    onDownload: () -> Unit,
+    onDelete: () -> Unit,
+    onRename: (String) -> Unit,
+    onCopy: (String) -> Unit,
+    onMove: (String) -> Unit
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        onClick = onLongClick
+            .clickable(onClick = onClick)
     ) {
         Row(
             modifier = Modifier
@@ -294,7 +312,7 @@ private fun LocalFileCard(
             }
 
             // Sync status indicator
-            if (!file.isDirectory) {
+            if (!file.isDirectory && !isMultiSelectMode) {
                 Icon(
                     when (file.syncStatus) {
                         "SYNCED" -> Icons.Default.CheckCircle
@@ -311,6 +329,74 @@ private fun LocalFileCard(
                     },
                     modifier = Modifier.size(20.dp)
                 )
+            }
+
+            // More menu (only when not in multi-select mode)
+            if (!isMultiSelectMode && !file.isDirectory) {
+                Box {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                    }
+
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Download") },
+                            onClick = {
+                                showMenu = false
+                                onDownload()
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.Download, contentDescription = null)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Delete") },
+                            onClick = {
+                                showMenu = false
+                                onDelete()
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.Delete, contentDescription = null)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Rename") },
+                            onClick = {
+                                showMenu = false
+                                // TODO: Show rename dialog
+                                onRename(file.name + "_renamed")
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.Edit, contentDescription = null)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Copy") },
+                            onClick = {
+                                showMenu = false
+                                // TODO: Show destination picker
+                                onCopy("/destination")
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.ContentCopy, contentDescription = null)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Move") },
+                            onClick = {
+                                showMenu = false
+                                // TODO: Show destination picker
+                                onMove("/destination")
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.DriveFileMove, contentDescription = null)
+                            }
+                        )
+                    }
+                }
             }
         }
     }
