@@ -12,10 +12,24 @@ sealed class Screen(val route: String) {
         }
     }
 
+    data class TwoFactorProvider(val accountId: Long) : Screen("two_factor_provider/{accountId}") {
+        companion object {
+            const val ROUTE = "two_factor_provider/{accountId}"
+            fun createRoute(accountId: Long) = "two_factor_provider/$accountId"
+        }
+    }
+
     data class TwoFactor(val accountId: Long) : Screen("two_factor/{accountId}") {
         companion object {
             const val ROUTE = "two_factor/{accountId}"
             fun createRoute(accountId: Long) = "two_factor/$accountId"
+        }
+    }
+
+    data class TwoFactorNotification(val accountId: Long) : Screen("two_factor_notification/{accountId}") {
+        companion object {
+            const val ROUTE = "two_factor_notification/{accountId}"
+            fun createRoute(accountId: Long) = "two_factor_notification/$accountId"
         }
     }
 

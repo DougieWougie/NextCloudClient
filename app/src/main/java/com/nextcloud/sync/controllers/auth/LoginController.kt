@@ -3,18 +3,22 @@ package com.nextcloud.sync.controllers.auth
 import android.content.Context
 import com.nextcloud.sync.models.database.entities.AccountEntity
 import com.nextcloud.sync.models.network.ConnectionResult
+import com.nextcloud.sync.models.network.NextcloudAuthenticator
 import com.nextcloud.sync.models.network.WebDavClient
 import com.nextcloud.sync.models.repository.AccountRepository
 import com.nextcloud.sync.utils.AuthRateLimiter
 import com.nextcloud.sync.utils.EncryptionUtil
 import com.nextcloud.sync.utils.InputValidator
 import com.nextcloud.sync.utils.RateLimitResult
+import com.nextcloud.sync.utils.SafeLogger
 import kotlinx.coroutines.delay
+import org.json.JSONArray
 
 class LoginController(
     private val context: Context,
     private val accountRepository: AccountRepository,
-    private val rateLimiter: AuthRateLimiter
+    private val rateLimiter: AuthRateLimiter,
+    private val authenticator: NextcloudAuthenticator = NextcloudAuthenticator(context)
 ) {
     companion object {
         // SECURITY: Anti-enumeration delay to prevent timing attacks
@@ -103,6 +107,32 @@ class LoginController(
                     // Deactivate all existing accounts
                     accountRepository.deactivateAllAccounts()
 
+                    // Fetch available 2FA providers from server
+                    val providers = try {
+                        authenticator.fetch2FAProviders(normalizedUrl, username, password)
+                    } catch (e: Exception) {
+                        SafeLogger.e("LoginController", "Failed to fetch 2FA providers", e)
+                        emptyList()
+                    }
+
+                    // Serialize providers to JSON for storage
+                    val providersJson = if (providers.isNotEmpty()) {
+                        val jsonArray = JSONArray()
+                        providers.forEach { provider ->
+                            val providerJson = org.json.JSONObject().apply {
+                                put("id", provider.id)
+                                put("displayName", provider.displayName)
+                                put("type", provider.type.name)
+                            }
+                            jsonArray.put(providerJson)
+                        }
+                        jsonArray.toString()
+                    } else {
+                        null
+                    }
+
+                    SafeLogger.d("LoginController", "Found ${providers.size} 2FA providers for account")
+
                     // Save temporary credentials and redirect to 2FA
                     val encryptedPassword = EncryptionUtil.encryptPassword(password)
                     val account = AccountEntity(
@@ -110,6 +140,7 @@ class LoginController(
                         username = username,
                         passwordEncrypted = encryptedPassword,
                         twoFactorEnabled = true,
+                        twoFactorProviders = providersJson,
                         isActive = false // Not active until 2FA completed
                     )
 

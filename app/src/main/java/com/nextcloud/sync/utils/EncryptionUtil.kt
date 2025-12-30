@@ -140,13 +140,13 @@ object EncryptionUtil {
 
         val decrypted = cipher.doFinal(encrypted)
 
-        // Convert to CharArray
-        val result = CharArray(decrypted.size)
-        decrypted.forEachIndexed { index, byte ->
-            result[index] = byte.toInt().toChar()
-        }
+        // SECURITY: Properly convert UTF-8 bytes to String, then to CharArray
+        // Previous implementation incorrectly treated each byte as a character code,
+        // which broke passwords with non-ASCII characters (accents, emoji, etc.)
+        val passwordString = String(decrypted, Charsets.UTF_8)
+        val result = passwordString.toCharArray()
 
-        // Zero the byte arrays
+        // Zero the byte arrays and intermediate string
         decrypted.fill(0)
         iv.fill(0)
         encrypted.fill(0)

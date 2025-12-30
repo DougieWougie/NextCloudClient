@@ -55,6 +55,40 @@ object InputValidator {
             return ValidationResult.Invalid("Invalid URL format")
         }
 
+        // SECURITY: Prevent SSRF by blocking private network addresses
+        try {
+            val urlObj = java.net.URL(url)
+            val host = urlObj.host.lowercase()
+
+            // Block localhost
+            if (host == "localhost" || host == "127.0.0.1" || host == "::1" || host.startsWith("127.")) {
+                return ValidationResult.Invalid("Localhost addresses are not allowed for security reasons")
+            }
+
+            // Block private IP ranges
+            val ipAddress = try {
+                java.net.InetAddress.getByName(host)
+            } catch (e: Exception) {
+                null  // If hostname resolution fails, continue validation
+            }
+
+            if (ipAddress != null) {
+                // Check if it's a private address
+                if (ipAddress.isLoopbackAddress || ipAddress.isLinkLocalAddress ||
+                    ipAddress.isSiteLocalAddress || ipAddress.isAnyLocalAddress) {
+                    return ValidationResult.Invalid("Private network addresses are not allowed")
+                }
+
+                // Additional check for AWS metadata endpoint
+                if (host == "169.254.169.254") {
+                    return ValidationResult.Invalid("Cloud metadata endpoints are not allowed")
+                }
+            }
+        } catch (e: Exception) {
+            SafeLogger.w("InputValidator", "Failed to parse URL for SSRF check", e)
+            // Continue with validation - don't fail if we can't parse
+        }
+
         return ValidationResult.Valid
     }
 
@@ -99,7 +133,34 @@ object InputValidator {
     }
 
     /**
-     * Validate authentication token/app password
+     * Validate Nextcloud app password format.
+     * Format: xxxxx-xxxxx-xxxxx-xxxxx-xxxxx (5 groups of 5 alphanumeric chars)
+     *
+     * SECURITY: Strict validation prevents injection attacks and malformed tokens
+     */
+    fun validateNextcloudAppPassword(appPassword: String?): ValidationResult {
+        if (appPassword.isNullOrBlank()) {
+            return ValidationResult.Invalid("App password is required")
+        }
+
+        // Nextcloud app passwords are exactly 29 characters: 5*5 + 4 hyphens
+        if (appPassword.length != 29) {
+            return ValidationResult.Invalid("App password has invalid length")
+        }
+
+        // Validate format: xxxxx-xxxxx-xxxxx-xxxxx-xxxxx
+        val nextcloudAppPasswordPattern = Regex("^[A-Za-z0-9]{5}-[A-Za-z0-9]{5}-[A-Za-z0-9]{5}-[A-Za-z0-9]{5}-[A-Za-z0-9]{5}$")
+        if (!nextcloudAppPasswordPattern.matches(appPassword)) {
+            return ValidationResult.Invalid("App password format is invalid")
+        }
+
+        return ValidationResult.Valid
+    }
+
+    /**
+     * Validate generic authentication token
+     *
+     * SECURITY: More restrictive validation - only alphanumeric and hyphens
      */
     fun validateToken(token: String?): ValidationResult {
         if (token.isNullOrBlank()) {
@@ -110,8 +171,8 @@ object InputValidator {
             return ValidationResult.Invalid("Token is too long")
         }
 
-        // Tokens should be alphanumeric with some special chars
-        if (!token.matches(Regex("^[a-zA-Z0-9._-]+$"))) {
+        // More restrictive: only alphanumeric and hyphens (no dots or underscores)
+        if (!token.matches(Regex("^[a-zA-Z0-9-]+$"))) {
             return ValidationResult.Invalid("Token contains invalid characters")
         }
 

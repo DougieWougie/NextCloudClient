@@ -29,7 +29,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
         ConflictEntity::class,
         IndividualFileSyncEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -120,6 +120,21 @@ abstract class AppDatabase : RoomDatabase() {
         }
 
         /**
+         * Database migration from version 4 to version 5.
+         * Adds two_factor_providers column to accounts table for storing available 2FA providers.
+         */
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                SafeLogger.d("AppDatabase", "Migrating database from version 4 to 5")
+
+                // Add two_factor_providers column to accounts table
+                database.execSQL("ALTER TABLE accounts ADD COLUMN two_factor_providers TEXT")
+
+                SafeLogger.d("AppDatabase", "Migration 4->5 completed successfully")
+            }
+        }
+
+        /**
          * Creates or retrieves the singleton database instance.
          *
          * SECURITY IMPROVEMENTS:
@@ -149,7 +164,7 @@ abstract class AppDatabase : RoomDatabase() {
                     // This prevents accidental data loss from schema version mismatches
                     .fallbackToDestructiveMigrationOnDowngrade()
                     // Add migrations here as database schema evolves
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     // Migration callback for logging and validation
                     .addCallback(object : RoomDatabase.Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {

@@ -32,6 +32,8 @@ import com.nextcloud.sync.ui.screens.login.LoginScreen
 import com.nextcloud.sync.ui.screens.login.LoginViewModel
 import com.nextcloud.sync.ui.screens.twofactor.TwoFactorScreen
 import com.nextcloud.sync.ui.screens.twofactor.TwoFactorViewModel
+import com.nextcloud.sync.ui.screens.twofactorprovider.TwoFactorProviderScreen
+import com.nextcloud.sync.ui.screens.twofactornotification.TwoFactorNotificationScreen
 import com.nextcloud.sync.ui.screens.settings.SettingsScreen
 import com.nextcloud.sync.ui.screens.settings.SettingsViewModel
 import com.nextcloud.sync.ui.screens.editfolder.EditFolderScreen
@@ -81,7 +83,20 @@ fun NavGraph(
             )
         }
 
-        // Two-Factor Screen
+        // Two-Factor Provider Selection Screen
+        composable(
+            route = Screen.TwoFactorProvider.ROUTE,
+            arguments = listOf(navArgument("accountId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val accountId = backStackEntry.arguments?.getLong("accountId") ?: 0L
+            TwoFactorProviderScreen(
+                accountId = accountId,
+                navController = navController,
+                context = context
+            )
+        }
+
+        // Two-Factor TOTP Screen
         composable(
             route = Screen.TwoFactor.ROUTE,
             arguments = listOf(navArgument("accountId") { type = NavType.LongType })
@@ -99,6 +114,19 @@ fun NavGraph(
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 }
+            )
+        }
+
+        // Two-Factor Notification Screen
+        composable(
+            route = Screen.TwoFactorNotification.ROUTE,
+            arguments = listOf(navArgument("accountId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val accountId = backStackEntry.arguments?.getLong("accountId") ?: 0L
+            TwoFactorNotificationScreen(
+                accountId = accountId,
+                navController = navController,
+                context = context
             )
         }
 

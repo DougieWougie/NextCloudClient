@@ -21,6 +21,9 @@ data class AccountEntity(
     @ColumnInfo(name = "two_factor_enabled")
     val twoFactorEnabled: Boolean = false,
 
+    @ColumnInfo(name = "two_factor_providers")
+    val twoFactorProviders: String? = null, // JSON list of available 2FA providers
+
     @ColumnInfo(name = "auth_token_encrypted")
     val authTokenEncrypted: String? = null, // Encrypted app password or session token
 

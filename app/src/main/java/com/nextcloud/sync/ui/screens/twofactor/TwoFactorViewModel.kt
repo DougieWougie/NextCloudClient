@@ -73,6 +73,19 @@ class TwoFactorViewModel(
                             )
                         }
                     }
+
+                    // These don't apply to TOTP verification (only for notification-based 2FA)
+                    override fun onTimeout() {
+                        _uiState.update {
+                            it.copy(isLoading = false, verificationError = "Verification timed out")
+                        }
+                    }
+
+                    override fun onDenied() {
+                        _uiState.update {
+                            it.copy(isLoading = false, verificationError = "Verification denied")
+                        }
+                    }
                 }
             )
         }

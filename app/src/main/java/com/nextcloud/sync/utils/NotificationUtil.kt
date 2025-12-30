@@ -64,10 +64,34 @@ class NotificationUtil(private val context: Context) {
     }
 
     fun showConflictNotification(conflictCount: Int) {
+        // Create explicit intent to main activity with conflict resolution action
+        val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
+            action = "com.nextcloud.sync.ACTION_VIEW_CONFLICTS"
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        } ?: Intent()
+
+        // SECURITY: Use FLAG_IMMUTABLE to prevent intent modification (required for API 31+)
+        val pendingIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            PendingIntent.getActivity(
+                context,
+                Constants.NOTIFICATION_ID_CONFLICT,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+        } else {
+            PendingIntent.getActivity(
+                context,
+                Constants.NOTIFICATION_ID_CONFLICT,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT
+            )
+        }
+
         val notification = NotificationCompat.Builder(context, Constants.CHANNEL_ID_CONFLICT)
             .setContentTitle("Sync conflicts detected")
             .setContentText("$conflictCount file(s) require your attention")
             .setSmallIcon(android.R.drawable.stat_notify_error)
+            .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .build()
