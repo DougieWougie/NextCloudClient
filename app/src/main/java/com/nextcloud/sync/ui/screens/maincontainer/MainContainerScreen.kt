@@ -62,7 +62,7 @@ fun SharedTransitionScope.MainContainerScreen(
     navController: NavHostController,
     context: Context
 ) {
-    var selectedTab by remember { mutableStateOf(BottomNavDestination.Sync) }
+    var selectedTab by remember { mutableStateOf(BottomNavDestination.LocalFiles) }
 
     Scaffold(
         topBar = {
