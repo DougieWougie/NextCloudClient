@@ -266,9 +266,15 @@ class RemoteFileManagerController(
         targetFolderId: Long
     ): Boolean {
         return try {
-            // Validate path
-            if (PathValidator.validateRelativePath(remotePath) == null) {
-                SafeLogger.e("RemoteFileManagerController", "Invalid remote path: $remotePath")
+            // Validate path - WebDAV paths should start with /
+            if (remotePath.isEmpty() || !remotePath.startsWith("/")) {
+                SafeLogger.e("RemoteFileManagerController", "Invalid remote path (must start with /): $remotePath")
+                return false
+            }
+
+            // Check for path traversal
+            if (remotePath.contains("..")) {
+                SafeLogger.e("RemoteFileManagerController", "Invalid remote path (contains ..): $remotePath")
                 return false
             }
 
@@ -417,9 +423,15 @@ class RemoteFileManagerController(
      */
     suspend fun deleteRemoteFile(remotePath: String): Boolean {
         return try {
-            // Validate path
-            if (PathValidator.validateRelativePath(remotePath) == null) {
-                SafeLogger.e("RemoteFileManagerController", "Invalid remote path: $remotePath")
+            // Validate path - WebDAV paths should start with /
+            if (remotePath.isEmpty() || !remotePath.startsWith("/")) {
+                SafeLogger.e("RemoteFileManagerController", "Invalid remote path (must start with /): $remotePath")
+                return false
+            }
+
+            // Check for path traversal
+            if (remotePath.contains("..")) {
+                SafeLogger.e("RemoteFileManagerController", "Invalid remote path (contains ..): $remotePath")
                 return false
             }
 
@@ -448,9 +460,15 @@ class RemoteFileManagerController(
      */
     suspend fun renameRemoteFile(oldPath: String, newName: String): Boolean {
         return try {
-            // Validate paths
-            if (PathValidator.validateRelativePath(oldPath) == null) {
-                SafeLogger.e("RemoteFileManagerController", "Invalid old path: $oldPath")
+            // Validate old path - WebDAV paths should start with /
+            if (oldPath.isEmpty() || !oldPath.startsWith("/")) {
+                SafeLogger.e("RemoteFileManagerController", "Invalid old path (must start with /): $oldPath")
+                return false
+            }
+
+            // Check for path traversal
+            if (oldPath.contains("..")) {
+                SafeLogger.e("RemoteFileManagerController", "Invalid old path (contains ..): $oldPath")
                 return false
             }
 
@@ -468,6 +486,8 @@ class RemoteFileManagerController(
                 "$parentPath/$newName"
             }
 
+            SafeLogger.d("RemoteFileManagerController", "Renaming: $oldPath -> $newPath")
+
             // Rename file
             val success = webDavClient.renameFile(oldPath, newPath)
 
@@ -475,6 +495,8 @@ class RemoteFileManagerController(
                 // Invalidate cache for parent directory
                 invalidateCacheForPath(oldPath)
                 SafeLogger.d("RemoteFileManagerController", "Renamed: $oldPath -> $newPath")
+            } else {
+                SafeLogger.e("RemoteFileManagerController", "WebDAV rename returned false")
             }
 
             success
@@ -493,13 +515,27 @@ class RemoteFileManagerController(
      */
     suspend fun moveRemoteFile(sourcePath: String, destinationPath: String): Boolean {
         return try {
-            // Validate paths
-            if (PathValidator.validateRelativePath(sourcePath) == null) {
-                SafeLogger.e("RemoteFileManagerController", "Invalid source path: $sourcePath")
+            // Validate source path - WebDAV paths should start with /
+            if (sourcePath.isEmpty() || !sourcePath.startsWith("/")) {
+                SafeLogger.e("RemoteFileManagerController", "Invalid source path (must start with /): $sourcePath")
                 return false
             }
-            if (PathValidator.validateRelativePath(destinationPath) == null) {
-                SafeLogger.e("RemoteFileManagerController", "Invalid destination path: $destinationPath")
+
+            // Check for path traversal in source
+            if (sourcePath.contains("..")) {
+                SafeLogger.e("RemoteFileManagerController", "Invalid source path (contains ..): $sourcePath")
+                return false
+            }
+
+            // Validate destination path - WebDAV paths should start with /
+            if (destinationPath.isEmpty() || !destinationPath.startsWith("/")) {
+                SafeLogger.e("RemoteFileManagerController", "Invalid destination path (must start with /): $destinationPath")
+                return false
+            }
+
+            // Check for path traversal in destination
+            if (destinationPath.contains("..")) {
+                SafeLogger.e("RemoteFileManagerController", "Invalid destination path (contains ..): $destinationPath")
                 return false
             }
 
@@ -539,13 +575,27 @@ class RemoteFileManagerController(
      */
     suspend fun copyRemoteFile(sourcePath: String, destinationPath: String): Boolean {
         return try {
-            // Validate paths
-            if (PathValidator.validateRelativePath(sourcePath) == null) {
-                SafeLogger.e("RemoteFileManagerController", "Invalid source path: $sourcePath")
+            // Validate source path - WebDAV paths should start with /
+            if (sourcePath.isEmpty() || !sourcePath.startsWith("/")) {
+                SafeLogger.e("RemoteFileManagerController", "Invalid source path (must start with /): $sourcePath")
                 return false
             }
-            if (PathValidator.validateRelativePath(destinationPath) == null) {
-                SafeLogger.e("RemoteFileManagerController", "Invalid destination path: $destinationPath")
+
+            // Check for path traversal in source
+            if (sourcePath.contains("..")) {
+                SafeLogger.e("RemoteFileManagerController", "Invalid source path (contains ..): $sourcePath")
+                return false
+            }
+
+            // Validate destination path - WebDAV paths should start with /
+            if (destinationPath.isEmpty() || !destinationPath.startsWith("/")) {
+                SafeLogger.e("RemoteFileManagerController", "Invalid destination path (must start with /): $destinationPath")
+                return false
+            }
+
+            // Check for path traversal in destination
+            if (destinationPath.contains("..")) {
+                SafeLogger.e("RemoteFileManagerController", "Invalid destination path (contains ..): $destinationPath")
                 return false
             }
 

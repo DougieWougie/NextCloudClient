@@ -386,10 +386,12 @@ private fun RenameFileDialog(
                         errorMessage = when {
                             it.isEmpty() -> "Name cannot be empty"
                             it.contains("/") || it.contains("\\") -> "Name cannot contain / or \\"
+                            it.contains("\n") || it.contains("\r") -> "Name cannot contain newlines"
                             else -> null
                         }
                     },
                     label = { Text("New name") },
+                    singleLine = true,
                     isError = errorMessage != null,
                     supportingText = errorMessage?.let { { Text(it, color = MaterialTheme.colorScheme.error) } }
                 )

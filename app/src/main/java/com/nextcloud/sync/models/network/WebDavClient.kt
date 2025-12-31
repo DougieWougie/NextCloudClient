@@ -12,6 +12,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
 import java.io.File
+import java.net.URLEncoder
 import java.util.Date
 import java.util.concurrent.TimeUnit
 
@@ -304,6 +305,28 @@ class WebDavClient(
         }
     }
 
+    /**
+     * URL-encode a path by encoding each segment individually.
+     * This preserves the forward slashes while encoding special characters like spaces.
+     *
+     * @param path Path to encode (e.g., "/folder/file name.txt")
+     * @return Encoded path (e.g., "/folder/file%20name.txt")
+     */
+    private fun encodePathSegments(path: String): String {
+        if (path.isEmpty()) return path
+
+        // Split by "/" and encode each segment
+        val segments = path.split("/")
+        return segments.joinToString("/") { segment ->
+            if (segment.isEmpty()) {
+                segment
+            } else {
+                // URL encode the segment, then replace + with %20 for proper space encoding
+                URLEncoder.encode(segment, "UTF-8").replace("+", "%20")
+            }
+        }
+    }
+
     private fun buildFullPath(remotePath: String): String {
         // remotePath should be a user-relative path (e.g., /folder/file.txt)
         // We need to prepend the WebDAV base URL to make it a full WebDAV path
@@ -314,11 +337,12 @@ class WebDavClient(
             SafeLogger.w("WebDavClient", "Path already contains WebDAV structure: $remotePath")
             "$serverUrl$remotePath"
         } else {
-            // Build the full path with webdavBaseUrl
+            // Build the full path with webdavBaseUrl and URL-encode the path segments
+            val encodedPath = encodePathSegments(remotePath)
             if (remotePath.startsWith("/")) {
-                "$webdavBaseUrl$remotePath"
+                "$webdavBaseUrl$encodedPath"
             } else {
-                "$webdavBaseUrl/$remotePath"
+                "$webdavBaseUrl/$encodedPath"
             }
         }
     }
