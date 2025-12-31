@@ -38,6 +38,11 @@ class RemoteFileManagerViewModel(
             is RemoteFileManagerEvent.Refresh -> refresh()
             is RemoteFileManagerEvent.ClearError -> clearError()
 
+            // Multi-select
+            is RemoteFileManagerEvent.ToggleMultiSelect -> toggleMultiSelect()
+            is RemoteFileManagerEvent.ToggleSelection -> toggleSelection(event.path)
+            is RemoteFileManagerEvent.ExitMultiSelect -> exitMultiSelect()
+
             // File operations
             is RemoteFileManagerEvent.ShowDownloadDialog -> showDownloadDialog(event.path)
             is RemoteFileManagerEvent.ConfirmDownload -> confirmDownload(event.path, event.folderId)
@@ -130,6 +135,35 @@ class RemoteFileManagerViewModel(
 
     private fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    private fun toggleMultiSelect() {
+        _uiState.update {
+            it.copy(
+                isMultiSelectMode = !it.isMultiSelectMode,
+                selectedFiles = if (!it.isMultiSelectMode) emptySet() else it.selectedFiles
+            )
+        }
+    }
+
+    private fun toggleSelection(path: String) {
+        _uiState.update {
+            val newSelection = if (it.selectedFiles.contains(path)) {
+                it.selectedFiles - path
+            } else {
+                it.selectedFiles + path
+            }
+            it.copy(selectedFiles = newSelection)
+        }
+    }
+
+    private fun exitMultiSelect() {
+        _uiState.update {
+            it.copy(
+                isMultiSelectMode = false,
+                selectedFiles = emptySet()
+            )
+        }
     }
 
     private fun showDownloadDialog(path: String) {
@@ -386,6 +420,10 @@ data class RemoteFileManagerUiState(
     val isRefreshing: Boolean = false,
     val errorMessage: String? = null,
 
+    // Multi-select state
+    val isMultiSelectMode: Boolean = false,
+    val selectedFiles: Set<String> = emptySet(),
+
     // Dialog state
     val showRenameDialog: Boolean = false,
     val renameDialogPath: String? = null,
@@ -422,6 +460,11 @@ sealed class RemoteFileManagerEvent {
     object NavigateUp : RemoteFileManagerEvent()
     object Refresh : RemoteFileManagerEvent()
     object ClearError : RemoteFileManagerEvent()
+
+    // Multi-select events
+    object ToggleMultiSelect : RemoteFileManagerEvent()
+    data class ToggleSelection(val path: String) : RemoteFileManagerEvent()
+    object ExitMultiSelect : RemoteFileManagerEvent()
 
     // File operation events
     data class ShowDownloadDialog(val path: String) : RemoteFileManagerEvent()

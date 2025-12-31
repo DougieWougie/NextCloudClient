@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sync
@@ -67,12 +69,12 @@ fun SharedTransitionScope.MainContainerScreen(
     var selectedTab by remember { mutableStateOf(BottomNavDestination.LocalFiles) }
     var remoteCurrentPath by remember { mutableStateOf("/") }
     var remoteCanNavigateUp by remember { mutableStateOf(false) }
+    var remoteIsMultiSelectMode by remember { mutableStateOf(false) }
+    var remoteSelectedCount by remember { mutableStateOf(0) }
 
-    // Create Remote File Manager ViewModel outside the when block so it's always available
-    val remoteFileManagerViewModel: com.nextcloud.sync.ui.screens.remotefilemanager.RemoteFileManagerViewModel = viewModel(
-        factory = com.nextcloud.sync.ui.screens.remotefilemanager.RemoteFileManagerViewModel.Factory(context),
-        key = "remote_file_manager_vm"
-    )
+    // Create Remote File Manager ViewModel lazily - only when Remote Files tab is selected
+    // This prevents unnecessary network requests on app startup
+    var remoteFileManagerViewModel: com.nextcloud.sync.ui.screens.remotefilemanager.RemoteFileManagerViewModel? by remember { mutableStateOf(null) }
 
     Scaffold(
         topBar = {
@@ -81,28 +83,59 @@ fun SharedTransitionScope.MainContainerScreen(
                     Text(when (selectedTab) {
                         BottomNavDestination.LocalFiles -> "Local Files"
                         BottomNavDestination.RemoteFiles -> {
-                            if (remoteCurrentPath == "/") "Remote Files"
-                            else remoteCurrentPath.substringAfterLast('/')
+                            if (remoteIsMultiSelectMode) {
+                                "$remoteSelectedCount selected"
+                            } else if (remoteCurrentPath == "/") {
+                                "Remote Files"
+                            } else {
+                                remoteCurrentPath.substringAfterLast('/')
+                            }
                         }
                         BottomNavDestination.Sync -> "Nextcloud Sync"
                     })
                 },
                 navigationIcon = {
-                    // Show back button on Remote Files tab when not at root
-                    if (selectedTab == BottomNavDestination.RemoteFiles && remoteCanNavigateUp) {
-                        IconButton(onClick = {
-                            remoteFileManagerViewModel.onEvent(
-                                com.nextcloud.sync.ui.screens.remotefilemanager.RemoteFileManagerEvent.NavigateUp
-                            )
-                        }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Navigate up"
-                            )
+                    when {
+                        // Show close button in multi-select mode on Remote Files tab
+                        selectedTab == BottomNavDestination.RemoteFiles && remoteIsMultiSelectMode -> {
+                            IconButton(onClick = {
+                                remoteFileManagerViewModel?.onEvent(
+                                    com.nextcloud.sync.ui.screens.remotefilemanager.RemoteFileManagerEvent.ExitMultiSelect
+                                )
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Exit multi-select"
+                                )
+                            }
+                        }
+                        // Show back button on Remote Files tab when not at root
+                        selectedTab == BottomNavDestination.RemoteFiles && remoteCanNavigateUp -> {
+                            IconButton(onClick = {
+                                remoteFileManagerViewModel?.onEvent(
+                                    com.nextcloud.sync.ui.screens.remotefilemanager.RemoteFileManagerEvent.NavigateUp
+                                )
+                            }) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Navigate up"
+                                )
+                            }
                         }
                     }
                 },
                 actions = {
+                    // Show multi-select button on Remote Files tab
+                    if (selectedTab == BottomNavDestination.RemoteFiles && !remoteIsMultiSelectMode) {
+                        IconButton(onClick = {
+                            remoteFileManagerViewModel?.onEvent(
+                                com.nextcloud.sync.ui.screens.remotefilemanager.RemoteFileManagerEvent.ToggleMultiSelect
+                            )
+                        }) {
+                            Icon(Icons.Default.SelectAll, contentDescription = "Multi-select")
+                        }
+                    }
+
                     // Show Add Folder button only on Sync tab
                     if (selectedTab == BottomNavDestination.Sync) {
                         IconButton(onClick = { navController.navigate(Screen.AddFolder.route) }) {
@@ -147,14 +180,23 @@ fun SharedTransitionScope.MainContainerScreen(
                 )
             }
             BottomNavDestination.RemoteFiles -> {
+                // Create ViewModel lazily - only on first access to Remote Files tab
+                val viewModel = remoteFileManagerViewModel ?: viewModel<com.nextcloud.sync.ui.screens.remotefilemanager.RemoteFileManagerViewModel>(
+                    factory = com.nextcloud.sync.ui.screens.remotefilemanager.RemoteFileManagerViewModel.Factory(context)
+                ).also { remoteFileManagerViewModel = it }
+
                 RemoteFileManagerScreen(
                     navController = navController,
                     context = context,
                     modifier = Modifier.padding(paddingValues),
-                    viewModel = remoteFileManagerViewModel,
+                    viewModel = viewModel,
                     onNavigationStateChanged = { currentPath, canNavigateUp ->
                         remoteCurrentPath = currentPath
                         remoteCanNavigateUp = canNavigateUp
+                    },
+                    onMultiSelectStateChanged = { isMultiSelect, selectedCount ->
+                        remoteIsMultiSelectMode = isMultiSelect
+                        remoteSelectedCount = selectedCount
                     }
                 )
             }

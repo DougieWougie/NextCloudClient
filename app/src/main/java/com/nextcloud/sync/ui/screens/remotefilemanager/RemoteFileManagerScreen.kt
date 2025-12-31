@@ -32,13 +32,19 @@ fun RemoteFileManagerScreen(
     viewModel: RemoteFileManagerViewModel = viewModel(
         factory = RemoteFileManagerViewModel.Factory(context)
     ),
-    onNavigationStateChanged: (currentPath: String, canNavigateUp: Boolean) -> Unit = { _, _ -> }
+    onNavigationStateChanged: (currentPath: String, canNavigateUp: Boolean) -> Unit = { _, _ -> },
+    onMultiSelectStateChanged: (isMultiSelect: Boolean, selectedCount: Int) -> Unit = { _, _ -> }
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     // Notify parent about navigation state changes
     LaunchedEffect(uiState.currentPath) {
         onNavigationStateChanged(uiState.currentPath, uiState.currentPath != "/")
+    }
+
+    // Notify parent about multi-select state changes
+    LaunchedEffect(uiState.isMultiSelectMode, uiState.selectedFiles.size) {
+        onMultiSelectStateChanged(uiState.isMultiSelectMode, uiState.selectedFiles.size)
     }
 
     // Render dialogs
@@ -197,11 +203,17 @@ private fun FileListContent(
                     items(uiState.items) { item ->
                         RemoteFileCard(
                             item = item,
+                            isSelected = uiState.selectedFiles.contains(item.path),
+                            isMultiSelectMode = uiState.isMultiSelectMode,
                             onClick = {
-                                if (item.isDirectory) {
-                                    onEvent(RemoteFileManagerEvent.NavigateToFolder(item.name))
+                                if (uiState.isMultiSelectMode) {
+                                    onEvent(RemoteFileManagerEvent.ToggleSelection(item.path))
+                                } else {
+                                    if (item.isDirectory) {
+                                        onEvent(RemoteFileManagerEvent.NavigateToFolder(item.name))
+                                    }
+                                    // For files, clicking does nothing (context menu handles operations)
                                 }
-                                // For files, clicking does nothing (context menu handles operations)
                             },
                             onEvent = onEvent
                         )
@@ -216,6 +228,8 @@ private fun FileListContent(
 @Composable
 private fun RemoteFileCard(
     item: RemoteFileItem,
+    isSelected: Boolean,
+    isMultiSelectMode: Boolean,
     onClick: () -> Unit,
     onEvent: (RemoteFileManagerEvent) -> Unit
 ) {
@@ -232,6 +246,14 @@ private fun RemoteFileCard(
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            if (isMultiSelectMode) {
+                Checkbox(
+                    checked = isSelected,
+                    onCheckedChange = { onClick() }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+
             Icon(
                 if (item.isDirectory) Icons.Default.Folder else Icons.Default.InsertDriveFile,
                 contentDescription = null,
@@ -254,14 +276,14 @@ private fun RemoteFileCard(
                 }
             }
 
-            if (item.isDirectory) {
+            if (item.isDirectory && !isMultiSelectMode) {
                 Icon(
                     Icons.Default.ChevronRight,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            } else {
-                // Context menu for files
+            } else if (!item.isDirectory && !isMultiSelectMode) {
+                // Context menu for files (only when not in multi-select mode)
                 Box {
                     IconButton(onClick = { showMenu = true }) {
                         Icon(Icons.Default.MoreVert, contentDescription = "More options")

@@ -95,6 +95,15 @@ class RemoteFileManagerController(
 
             // Add folders first (filter hidden if needed)
             folders.forEach { folder ->
+                // Skip the current directory itself (WebDAV returns it as the first item)
+                // Normalize paths by removing trailing slashes for comparison
+                val normalizedFolderPath = folder.path.trimEnd('/')
+                val normalizedRemotePath = remotePath.trimEnd('/')
+
+                if (normalizedFolderPath == normalizedRemotePath) {
+                    return@forEach
+                }
+
                 // Filter hidden folders if needed
                 if (!HiddenFilesPreference.shouldFilter(folder.name, showHidden, userEmail)) {
                     items.add(
@@ -113,6 +122,11 @@ class RemoteFileManagerController(
 
             // Add files (filter hidden if needed)
             files.forEach { file ->
+                // Skip the current directory itself (shouldn't happen for files, but be safe)
+                if (file.path == remotePath) {
+                    return@forEach
+                }
+
                 // Filter hidden files if needed
                 if (!HiddenFilesPreference.shouldFilter(file.name, showHidden, userEmail)) {
                     items.add(
