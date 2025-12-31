@@ -12,7 +12,6 @@ import com.nextcloud.sync.models.repository.FolderRepository
 import com.nextcloud.sync.utils.DocumentFileHelper
 import com.nextcloud.sync.utils.FileHashUtil
 import com.nextcloud.sync.utils.HiddenFilesPreference
-import com.nextcloud.sync.utils.PathValidator
 import com.nextcloud.sync.utils.RemoteFileCache
 import com.nextcloud.sync.utils.SafeLogger
 import java.io.File

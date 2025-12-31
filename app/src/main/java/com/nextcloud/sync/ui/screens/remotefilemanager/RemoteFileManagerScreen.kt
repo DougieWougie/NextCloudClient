@@ -1,7 +1,6 @@
 package com.nextcloud.sync.ui.screens.remotefilemanager
 
 import android.content.Context
-import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -10,6 +9,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
+import androidx.compose.material.icons.automirrored.filled.DriveFileMove
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -264,7 +265,7 @@ private fun RemoteFileCard(
             }
 
             Icon(
-                if (item.isDirectory) Icons.Default.Folder else Icons.Default.InsertDriveFile,
+                if (item.isDirectory) Icons.Default.Folder else Icons.AutoMirrored.Filled.InsertDriveFile,
                 contentDescription = null,
                 tint = if (item.isDirectory) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -340,7 +341,7 @@ private fun RemoteFileCard(
                                 onEvent(RemoteFileManagerEvent.ShowMoveDialog(item.path))
                             },
                             leadingIcon = {
-                                Icon(Icons.Default.DriveFileMove, contentDescription = null)
+                                Icon(Icons.AutoMirrored.Filled.DriveFileMove, contentDescription = null)
                             }
                         )
                         HorizontalDivider()
