@@ -1,6 +1,9 @@
 package com.nextcloud.sync.ui.screens.remotefilemanager
 
 import android.content.Context
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,6 +40,17 @@ fun RemoteFileManagerScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    // File picker launcher for downloading files
+    val createDocumentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("*/*")
+    ) { uri ->
+        uri?.let {
+            uiState.downloadRequestPath?.let { path ->
+                viewModel.onEvent(RemoteFileManagerEvent.ConfirmDownloadToUri(path, it))
+            }
+        }
+    }
+
     // Notify parent about navigation state changes
     LaunchedEffect(uiState.currentPath) {
         onNavigationStateChanged(uiState.currentPath, uiState.currentPath != "/")
@@ -45,6 +59,14 @@ fun RemoteFileManagerScreen(
     // Notify parent about multi-select state changes
     LaunchedEffect(uiState.isMultiSelectMode, uiState.selectedFiles.size) {
         onMultiSelectStateChanged(uiState.isMultiSelectMode, uiState.selectedFiles.size)
+    }
+
+    // Trigger file picker when download is requested
+    LaunchedEffect(uiState.downloadRequestPath) {
+        uiState.downloadRequestPath?.let { path ->
+            val fileName = path.substringAfterLast('/')
+            createDocumentLauncher.launch(fileName)
+        }
     }
 
     // Render dialogs
@@ -104,19 +126,6 @@ fun RemoteFileManagerScreen(
         }
     }
 
-    uiState.downloadDialogPath?.let { downloadPath ->
-        if (uiState.showDownloadDialog) {
-            val fileName = downloadPath.substringAfterLast('/')
-            DownloadDestinationDialog(
-                fileName = fileName,
-                availableFolders = uiState.availableFolders,
-                onConfirm = { folderId ->
-                    viewModel.onEvent(RemoteFileManagerEvent.ConfirmDownload(downloadPath, folderId))
-                },
-                onDismiss = { viewModel.onEvent(RemoteFileManagerEvent.DismissDialog) }
-            )
-        }
-    }
 
     Box(modifier = modifier.fillMaxSize()) {
         // Show error dialog if there's an error
@@ -297,7 +306,7 @@ private fun RemoteFileCard(
                             text = { Text("Download") },
                             onClick = {
                                 showMenu = false
-                                onEvent(RemoteFileManagerEvent.ShowDownloadDialog(item.path))
+                                onEvent(RemoteFileManagerEvent.RequestDownload(item.path))
                             },
                             leadingIcon = {
                                 Icon(Icons.Default.Download, contentDescription = null)
@@ -557,95 +566,6 @@ private fun CopyFileDialog(
     )
 }
 
-@Composable
-private fun DownloadDestinationDialog(
-    fileName: String,
-    availableFolders: List<com.nextcloud.sync.models.database.entities.FolderEntity>,
-    onConfirm: (Long) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var selectedFolderId by remember { mutableStateOf<Long?>(null) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Download File") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    "Select destination folder for: $fileName",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                if (availableFolders.isEmpty()) {
-                    Text(
-                        "No sync folders available. Please create a sync folder first.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.heightIn(max = 300.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        items(availableFolders) { folder ->
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = if (selectedFolderId == folder.id) {
-                                        MaterialTheme.colorScheme.primaryContainer
-                                    } else {
-                                        MaterialTheme.colorScheme.surface
-                                    }
-                                ),
-                                onClick = { selectedFolderId = folder.id }
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .padding(12.dp)
-                                        .fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    RadioButton(
-                                        selected = selectedFolderId == folder.id,
-                                        onClick = { selectedFolderId = folder.id }
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Column {
-                                        Text(
-                                            text = folder.remotePath,
-                                            style = MaterialTheme.typography.bodyMedium
-                                        )
-                                        Text(
-                                            text = folder.localPath,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    selectedFolderId?.let { onConfirm(it) }
-                },
-                enabled = selectedFolderId != null
-            ) {
-                Text("Download")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
-}
 
 private fun formatSize(bytes: Long): String {
     return when {

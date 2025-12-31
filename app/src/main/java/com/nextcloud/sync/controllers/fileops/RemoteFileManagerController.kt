@@ -591,6 +591,42 @@ class RemoteFileManagerController(
     }
 
     /**
+     * Download a remote file to a user-selected Uri (using SAF).
+     *
+     * @param remotePath Remote file path
+     * @param destinationUri Local destination Uri (from ACTION_CREATE_DOCUMENT)
+     * @return True if download successful
+     */
+    suspend fun downloadFileToUri(
+        remotePath: String,
+        destinationUri: Uri
+    ): Boolean {
+        return try {
+            SafeLogger.d("RemoteFileManagerController", "Downloading $remotePath to $destinationUri")
+
+            // Get file stream from server
+            val inputStream = webDavClient.getFileStream(remotePath)
+            if (inputStream == null) {
+                SafeLogger.e("RemoteFileManagerController", "Failed to get file stream: $remotePath")
+                return false
+            }
+
+            // Write to destination Uri
+            inputStream.use { input ->
+                context.contentResolver.openOutputStream(destinationUri)?.use { output ->
+                    input.copyTo(output)
+                    SafeLogger.d("RemoteFileManagerController", "Download completed: $remotePath")
+                }
+            }
+
+            true
+        } catch (e: Exception) {
+            SafeLogger.e("RemoteFileManagerController", "Download to Uri failed", e)
+            false
+        }
+    }
+
+    /**
      * Invalidate cache for a path and its parent directory.
      *
      * @param path Path to invalidate cache for
