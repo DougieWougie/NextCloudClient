@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Folder
@@ -31,6 +32,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -63,6 +65,14 @@ fun SharedTransitionScope.MainContainerScreen(
     context: Context
 ) {
     var selectedTab by remember { mutableStateOf(BottomNavDestination.LocalFiles) }
+    var remoteCurrentPath by remember { mutableStateOf("/") }
+    var remoteCanNavigateUp by remember { mutableStateOf(false) }
+
+    // Create Remote File Manager ViewModel outside the when block so it's always available
+    val remoteFileManagerViewModel: com.nextcloud.sync.ui.screens.remotefilemanager.RemoteFileManagerViewModel = viewModel(
+        factory = com.nextcloud.sync.ui.screens.remotefilemanager.RemoteFileManagerViewModel.Factory(context),
+        key = "remote_file_manager_vm"
+    )
 
     Scaffold(
         topBar = {
@@ -70,9 +80,27 @@ fun SharedTransitionScope.MainContainerScreen(
                 title = {
                     Text(when (selectedTab) {
                         BottomNavDestination.LocalFiles -> "Local Files"
-                        BottomNavDestination.RemoteFiles -> "Remote Files"
+                        BottomNavDestination.RemoteFiles -> {
+                            if (remoteCurrentPath == "/") "Remote Files"
+                            else remoteCurrentPath.substringAfterLast('/')
+                        }
                         BottomNavDestination.Sync -> "Nextcloud Sync"
                     })
+                },
+                navigationIcon = {
+                    // Show back button on Remote Files tab when not at root
+                    if (selectedTab == BottomNavDestination.RemoteFiles && remoteCanNavigateUp) {
+                        IconButton(onClick = {
+                            remoteFileManagerViewModel.onEvent(
+                                com.nextcloud.sync.ui.screens.remotefilemanager.RemoteFileManagerEvent.NavigateUp
+                            )
+                        }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Navigate up"
+                            )
+                        }
+                    }
                 },
                 actions = {
                     // Show Add Folder button only on Sync tab
@@ -122,7 +150,12 @@ fun SharedTransitionScope.MainContainerScreen(
                 RemoteFileManagerScreen(
                     navController = navController,
                     context = context,
-                    modifier = Modifier.padding(paddingValues)
+                    modifier = Modifier.padding(paddingValues),
+                    viewModel = remoteFileManagerViewModel,
+                    onNavigationStateChanged = { currentPath, canNavigateUp ->
+                        remoteCurrentPath = currentPath
+                        remoteCanNavigateUp = canNavigateUp
+                    }
                 )
             }
             BottomNavDestination.Sync -> {

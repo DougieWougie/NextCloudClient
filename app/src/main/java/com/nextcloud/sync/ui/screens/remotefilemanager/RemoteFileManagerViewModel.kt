@@ -8,7 +8,6 @@ import com.nextcloud.sync.controllers.fileops.RemoteFileManagerController
 import com.nextcloud.sync.models.database.AppDatabase
 import com.nextcloud.sync.models.network.WebDavClient
 import com.nextcloud.sync.models.repository.AccountRepository
-import com.nextcloud.sync.models.repository.IndividualFileSyncRepository
 import com.nextcloud.sync.utils.EncryptionUtil
 import com.nextcloud.sync.utils.SafeLogger
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,12 +34,22 @@ class RemoteFileManagerViewModel(
         when (event) {
             is RemoteFileManagerEvent.NavigateToFolder -> navigateToFolder(event.folderName)
             is RemoteFileManagerEvent.NavigateToBreadcrumb -> navigateToPath(event.path)
-            is RemoteFileManagerEvent.LongPress -> enterMultiSelect(event.path)
-            is RemoteFileManagerEvent.ToggleSelection -> toggleSelection(event.path)
-            is RemoteFileManagerEvent.ExitMultiSelect -> exitMultiSelect()
-            is RemoteFileManagerEvent.AddToSync -> addSelectedToSync()
+            is RemoteFileManagerEvent.NavigateUp -> navigateUp()
             is RemoteFileManagerEvent.Refresh -> refresh()
             is RemoteFileManagerEvent.ClearError -> clearError()
+
+            // File operations
+            is RemoteFileManagerEvent.ShowDownloadDialog -> showDownloadDialog(event.path)
+            is RemoteFileManagerEvent.ConfirmDownload -> confirmDownload(event.path, event.folderId)
+            is RemoteFileManagerEvent.ShowDeleteDialog -> showDeleteDialog(event.path)
+            is RemoteFileManagerEvent.ConfirmDelete -> confirmDelete(event.path)
+            is RemoteFileManagerEvent.ShowRenameDialog -> showRenameDialog(event.path, event.currentName)
+            is RemoteFileManagerEvent.ConfirmRename -> confirmRename(event.path, event.newName)
+            is RemoteFileManagerEvent.ShowMoveDialog -> showMoveDialog(event.path)
+            is RemoteFileManagerEvent.ConfirmMove -> confirmMove(event.sourcePath, event.destPath)
+            is RemoteFileManagerEvent.ShowCopyDialog -> showCopyDialog(event.path)
+            is RemoteFileManagerEvent.ConfirmCopy -> confirmCopy(event.sourcePath, event.destPath)
+            is RemoteFileManagerEvent.DismissDialog -> dismissDialog()
         }
     }
 
@@ -110,68 +119,212 @@ class RemoteFileManagerViewModel(
         loadFiles(path)
     }
 
-    private fun enterMultiSelect(path: String) {
-        _uiState.update {
-            it.copy(
-                isMultiSelectMode = true,
-                selectedFiles = setOf(path)
-            )
-        }
-    }
+    private fun navigateUp() {
+        val currentPath = _uiState.value.currentPath
+        if (currentPath == "/") return
 
-    private fun toggleSelection(path: String) {
-        _uiState.update {
-            val newSelection = if (it.selectedFiles.contains(path)) {
-                it.selectedFiles - path
-            } else {
-                it.selectedFiles + path
-            }
-            it.copy(selectedFiles = newSelection)
-        }
-    }
-
-    private fun exitMultiSelect() {
-        _uiState.update {
-            it.copy(
-                isMultiSelectMode = false,
-                selectedFiles = emptySet()
-            )
-        }
-    }
-
-    private fun addSelectedToSync() {
-        viewModelScope.launch {
-            try {
-                val account = accountRepository.getActiveAccount() ?: run {
-                    _uiState.update { it.copy(errorMessage = "No account found") }
-                    return@launch
-                }
-
-                val selectedPaths = _uiState.value.selectedFiles.toList()
-                val localBasePath = context.filesDir.absolutePath + "/individual_sync"
-
-                val success = controller.addFilesToSync(
-                    filePaths = selectedPaths,
-                    accountId = account.id,
-                    localBasePath = localBasePath,
-                    wifiOnly = false
-                )
-
-                if (success) {
-                    exitMultiSelect()
-                    // Show success feedback (could add a snackbar state)
-                } else {
-                    _uiState.update { it.copy(errorMessage = "Failed to add files to sync") }
-                }
-            } catch (e: Exception) {
-                SafeLogger.e("RemoteFileManagerViewModel", "Failed to add to sync", e)
-                _uiState.update { it.copy(errorMessage = e.message) }
-            }
-        }
+        val parentPath = currentPath.substringBeforeLast('/', "/")
+        val finalPath = if (parentPath.isEmpty()) "/" else parentPath
+        loadFiles(finalPath)
     }
 
     private fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    private fun showDownloadDialog(path: String) {
+        viewModelScope.launch {
+            try {
+                val account = accountRepository.getActiveAccount()
+                if (account == null) {
+                    _uiState.update { it.copy(errorMessage = "No account found") }
+                    return@launch
+                }
+
+                val folders = controller.getAvailableSyncFolders(account.id)
+                _uiState.update {
+                    it.copy(
+                        showDownloadDialog = true,
+                        downloadDialogPath = path,
+                        availableFolders = folders
+                    )
+                }
+            } catch (e: Exception) {
+                SafeLogger.e("RemoteFileManagerViewModel", "Failed to load folders", e)
+                _uiState.update { it.copy(errorMessage = "Failed to load folders") }
+            }
+        }
+    }
+
+    private fun confirmDownload(path: String, folderId: Long) {
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isLoading = true) }
+
+                val account = accountRepository.getActiveAccount()
+                if (account == null) {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = "No account found"
+                        )
+                    }
+                    return@launch
+                }
+
+                val success = controller.downloadFileToSyncFolder(path, account.id, folderId)
+
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = if (success) null else "Download failed"
+                    )
+                }
+
+                if (success) {
+                    dismissDialog()
+                }
+            } catch (e: Exception) {
+                SafeLogger.e("RemoteFileManagerViewModel", "Download failed", e)
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Download failed: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
+
+    private fun showDeleteDialog(path: String) {
+        val fileName = path.substringAfterLast('/')
+        _uiState.update {
+            it.copy(
+                showDeleteConfirmDialog = true,
+                deleteConfirmPath = path,
+                deleteConfirmName = fileName
+            )
+        }
+    }
+
+    private fun confirmDelete(path: String) {
+        viewModelScope.launch {
+            try {
+                val success = controller.deleteRemoteFile(path)
+
+                if (success) {
+                    dismissDialog()
+                    refresh()
+                } else {
+                    _uiState.update { it.copy(errorMessage = "Failed to delete file") }
+                }
+            } catch (e: Exception) {
+                SafeLogger.e("RemoteFileManagerViewModel", "Delete failed", e)
+                _uiState.update { it.copy(errorMessage = "Delete failed: ${e.message}") }
+            }
+        }
+    }
+
+    private fun showRenameDialog(path: String, currentName: String) {
+        _uiState.update {
+            it.copy(
+                showRenameDialog = true,
+                renameDialogPath = path,
+                renameDialogCurrentName = currentName
+            )
+        }
+    }
+
+    private fun confirmRename(path: String, newName: String) {
+        viewModelScope.launch {
+            try {
+                val success = controller.renameRemoteFile(path, newName)
+
+                if (success) {
+                    dismissDialog()
+                    refresh()
+                } else {
+                    _uiState.update { it.copy(errorMessage = "Failed to rename file") }
+                }
+            } catch (e: Exception) {
+                SafeLogger.e("RemoteFileManagerViewModel", "Rename failed", e)
+                _uiState.update { it.copy(errorMessage = "Rename failed: ${e.message}") }
+            }
+        }
+    }
+
+    private fun showMoveDialog(path: String) {
+        _uiState.update {
+            it.copy(
+                showMoveDialog = true,
+                moveDialogSourcePath = path
+            )
+        }
+    }
+
+    private fun confirmMove(sourcePath: String, destPath: String) {
+        viewModelScope.launch {
+            try {
+                val success = controller.moveRemoteFile(sourcePath, destPath)
+
+                if (success) {
+                    dismissDialog()
+                    refresh()
+                } else {
+                    _uiState.update { it.copy(errorMessage = "Failed to move file") }
+                }
+            } catch (e: Exception) {
+                SafeLogger.e("RemoteFileManagerViewModel", "Move failed", e)
+                _uiState.update { it.copy(errorMessage = "Move failed: ${e.message}") }
+            }
+        }
+    }
+
+    private fun showCopyDialog(path: String) {
+        _uiState.update {
+            it.copy(
+                showCopyDialog = true,
+                copyDialogSourcePath = path
+            )
+        }
+    }
+
+    private fun confirmCopy(sourcePath: String, destPath: String) {
+        viewModelScope.launch {
+            try {
+                val success = controller.copyRemoteFile(sourcePath, destPath)
+
+                if (success) {
+                    dismissDialog()
+                    // Optionally navigate to destination or show success message
+                } else {
+                    _uiState.update { it.copy(errorMessage = "Failed to copy file") }
+                }
+            } catch (e: Exception) {
+                SafeLogger.e("RemoteFileManagerViewModel", "Copy failed", e)
+                _uiState.update { it.copy(errorMessage = "Copy failed: ${e.message}") }
+            }
+        }
+    }
+
+    private fun dismissDialog() {
+        _uiState.update {
+            it.copy(
+                showRenameDialog = false,
+                renameDialogPath = null,
+                renameDialogCurrentName = null,
+                showDeleteConfirmDialog = false,
+                deleteConfirmPath = null,
+                deleteConfirmName = null,
+                showMoveDialog = false,
+                moveDialogSourcePath = null,
+                showCopyDialog = false,
+                copyDialogSourcePath = null,
+                showDownloadDialog = false,
+                downloadDialogPath = null,
+                availableFolders = emptyList()
+            )
+        }
     }
 
     private fun buildBreadcrumbs(path: String): List<Breadcrumb> {
@@ -194,7 +347,8 @@ class RemoteFileManagerViewModel(
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             val db = AppDatabase.getInstance(context)
             val accountRepository = AccountRepository(db.accountDao())
-            val individualFileSyncRepository = IndividualFileSyncRepository(db.individualFileSyncDao())
+            val folderRepository = com.nextcloud.sync.models.repository.FolderRepository(db.folderDao())
+            val fileRepository = com.nextcloud.sync.models.repository.FileRepository(db.fileDao())
 
             // Get account for WebDavClient
             val account = runCatching {
@@ -211,7 +365,12 @@ class RemoteFileManagerViewModel(
                 WebDavClient(context, "", "", "")
             }
 
-            val controller = RemoteFileManagerController(webDavClient, individualFileSyncRepository, context)
+            val controller = RemoteFileManagerController(
+                webDavClient,
+                folderRepository,
+                fileRepository,
+                context
+            )
 
             return RemoteFileManagerViewModel(controller, accountRepository, context) as T
         }
@@ -223,11 +382,24 @@ data class RemoteFileManagerUiState(
     val currentPath: String = "/",
     val items: List<RemoteFileItem> = emptyList(),
     val breadcrumbs: List<Breadcrumb> = emptyList(),
-    val isMultiSelectMode: Boolean = false,
-    val selectedFiles: Set<String> = emptySet(),
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+
+    // Dialog state
+    val showRenameDialog: Boolean = false,
+    val renameDialogPath: String? = null,
+    val renameDialogCurrentName: String? = null,
+    val showDeleteConfirmDialog: Boolean = false,
+    val deleteConfirmPath: String? = null,
+    val deleteConfirmName: String? = null,
+    val showMoveDialog: Boolean = false,
+    val moveDialogSourcePath: String? = null,
+    val showCopyDialog: Boolean = false,
+    val copyDialogSourcePath: String? = null,
+    val showDownloadDialog: Boolean = false,
+    val downloadDialogPath: String? = null,
+    val availableFolders: List<com.nextcloud.sync.models.database.entities.FolderEntity> = emptyList()
 )
 
 data class RemoteFileItem(
@@ -247,10 +419,20 @@ data class Breadcrumb(
 sealed class RemoteFileManagerEvent {
     data class NavigateToFolder(val folderName: String) : RemoteFileManagerEvent()
     data class NavigateToBreadcrumb(val path: String) : RemoteFileManagerEvent()
-    data class LongPress(val path: String) : RemoteFileManagerEvent()
-    data class ToggleSelection(val path: String) : RemoteFileManagerEvent()
-    object ExitMultiSelect : RemoteFileManagerEvent()
-    object AddToSync : RemoteFileManagerEvent()
+    object NavigateUp : RemoteFileManagerEvent()
     object Refresh : RemoteFileManagerEvent()
     object ClearError : RemoteFileManagerEvent()
+
+    // File operation events
+    data class ShowDownloadDialog(val path: String) : RemoteFileManagerEvent()
+    data class ConfirmDownload(val path: String, val folderId: Long) : RemoteFileManagerEvent()
+    data class ShowDeleteDialog(val path: String) : RemoteFileManagerEvent()
+    data class ConfirmDelete(val path: String) : RemoteFileManagerEvent()
+    data class ShowRenameDialog(val path: String, val currentName: String) : RemoteFileManagerEvent()
+    data class ConfirmRename(val path: String, val newName: String) : RemoteFileManagerEvent()
+    data class ShowMoveDialog(val path: String) : RemoteFileManagerEvent()
+    data class ConfirmMove(val sourcePath: String, val destPath: String) : RemoteFileManagerEvent()
+    data class ShowCopyDialog(val path: String) : RemoteFileManagerEvent()
+    data class ConfirmCopy(val sourcePath: String, val destPath: String) : RemoteFileManagerEvent()
+    object DismissDialog : RemoteFileManagerEvent()
 }

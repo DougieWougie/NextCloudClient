@@ -1,28 +1,38 @@
 package com.nextcloud.sync.controllers.fileops
 
 import android.content.Context
+import android.net.Uri
+import androidx.documentfile.provider.DocumentFile
+import com.nextcloud.sync.models.data.SyncStatus
+import com.nextcloud.sync.models.database.entities.FileEntity
+import com.nextcloud.sync.models.database.entities.FolderEntity
 import com.nextcloud.sync.models.network.WebDavClient
-import com.nextcloud.sync.models.repository.IndividualFileSyncRepository
-import com.nextcloud.sync.models.database.entities.IndividualFileSyncEntity
+import com.nextcloud.sync.models.repository.FileRepository
+import com.nextcloud.sync.models.repository.FolderRepository
+import com.nextcloud.sync.utils.DocumentFileHelper
+import com.nextcloud.sync.utils.FileHashUtil
 import com.nextcloud.sync.utils.HiddenFilesPreference
 import com.nextcloud.sync.utils.PathValidator
 import com.nextcloud.sync.utils.RemoteFileCache
 import com.nextcloud.sync.utils.SafeLogger
+import java.io.File
 import java.util.Date
 
 /**
  * Controller for remote file manager operations.
  *
- * Handles browsing remote Nextcloud files, adding files to individual sync,
- * and searching remote files.
+ * Handles browsing remote Nextcloud files, downloading files,
+ * and managing remote files (delete, rename, move, copy).
  *
  * @property webDavClient WebDAV client for remote operations
- * @property individualFileSyncRepository Repository for individual file sync
+ * @property folderRepository Repository for folder operations
+ * @property fileRepository Repository for file operations
  * @property context Application context for preferences
  */
 class RemoteFileManagerController(
     private val webDavClient: WebDavClient,
-    private val individualFileSyncRepository: IndividualFileSyncRepository,
+    private val folderRepository: FolderRepository,
+    private val fileRepository: FileRepository,
     private val context: Context
 ) {
 
@@ -53,9 +63,15 @@ class RemoteFileManagerController(
         forceRefresh: Boolean = false
     ): List<RemoteFileItem> {
         return try {
-            // Validate path (allow root path "/" as special case)
-            if (remotePath != "/" && PathValidator.validateRelativePath(remotePath) == null) {
-                SafeLogger.e("RemoteFileManagerController", "Invalid remote path: $remotePath")
+            // Validate path - WebDAV paths should start with / and not contain dangerous characters
+            if (remotePath.isEmpty() || (!remotePath.startsWith("/") && remotePath != "/")) {
+                SafeLogger.e("RemoteFileManagerController", "Invalid remote path (must start with /): $remotePath")
+                return emptyList()
+            }
+
+            // Check for path traversal attempts
+            if (remotePath.contains("..")) {
+                SafeLogger.e("RemoteFileManagerController", "Invalid remote path (contains ..): $remotePath")
                 return emptyList()
             }
 
@@ -67,13 +83,11 @@ class RemoteFileManagerController(
             if (!forceRefresh) {
                 val cachedItems = RemoteFileCache.getCached(cacheKey)
                 if (cachedItems != null) {
-                    SafeLogger.d("RemoteFileManagerController", "Cache hit for: $remotePath")
                     return cachedItems
                 }
             }
 
             // Cache miss or force refresh - fetch from server
-            SafeLogger.d("RemoteFileManagerController", "Fetching from server: $remotePath")
             val folders = webDavClient.listFolders(remotePath)
             val files = webDavClient.listFiles(remotePath)
 
@@ -117,7 +131,6 @@ class RemoteFileManagerController(
 
             // Store in cache
             RemoteFileCache.put(cacheKey, items)
-            SafeLogger.d("RemoteFileManagerController", "Cached ${items.size} items for: $remotePath")
 
             items
         } catch (e: Exception) {
@@ -131,74 +144,6 @@ class RemoteFileManagerController(
      */
     private fun buildCacheKey(path: String, userEmail: String?, showHidden: Boolean): String {
         return "${path}|${userEmail ?: "null"}|$showHidden"
-    }
-
-    /**
-     * Add selected files to individual sync configuration.
-     *
-     * @param filePaths List of remote file paths to add
-     * @param accountId Account ID
-     * @param localBasePath Base local path where files will be synced
-     * @param wifiOnly Whether to restrict sync to WiFi
-     * @return True if all files added successfully, false otherwise
-     */
-    suspend fun addFilesToSync(
-        filePaths: List<String>,
-        accountId: Long,
-        localBasePath: String,
-        wifiOnly: Boolean
-    ): Boolean {
-        return try {
-            var allSuccess = true
-
-            filePaths.forEach { remotePath ->
-                // Validate path
-                if (PathValidator.validateRelativePath(remotePath) == null) {
-                    SafeLogger.e("RemoteFileManagerController", "Invalid path: $remotePath")
-                    allSuccess = false
-                    return@forEach
-                }
-
-                // Check if already being synced
-                val existing = individualFileSyncRepository.getByRemotePath(remotePath, accountId)
-                if (existing != null) {
-                    SafeLogger.d("RemoteFileManagerController", "File already in sync: $remotePath")
-                    return@forEach
-                }
-
-                // Extract filename
-                val fileName = remotePath.substringAfterLast('/')
-
-                // Build local path
-                val localPath = if (localBasePath.endsWith("/")) {
-                    "$localBasePath$fileName"
-                } else {
-                    "$localBasePath/$fileName"
-                }
-
-                // Create individual file sync entity
-                val entity = IndividualFileSyncEntity(
-                    accountId = accountId,
-                    localPath = localPath,
-                    remotePath = remotePath,
-                    fileName = fileName,
-                    syncEnabled = true,
-                    autoSync = true,
-                    wifiOnly = wifiOnly,
-                    lastSync = null
-                )
-
-                val id = individualFileSyncRepository.insert(entity)
-                if (id <= 0) {
-                    allSuccess = false
-                }
-            }
-
-            allSuccess
-        } catch (e: Exception) {
-            SafeLogger.e("RemoteFileManagerController", "Failed to add files to sync", e)
-            false
-        }
     }
 
     /**
@@ -224,27 +169,6 @@ class RemoteFileManagerController(
             SafeLogger.e("RemoteFileManagerController", "Search failed", e)
             emptyList()
         }
-    }
-
-    /**
-     * Get files already added to individual sync for an account.
-     *
-     * @param accountId Account ID
-     * @return List of individual file sync entities
-     */
-    suspend fun getSyncedFiles(accountId: Long): List<IndividualFileSyncEntity> {
-        return individualFileSyncRepository.getAllFiles(accountId)
-    }
-
-    /**
-     * Check if a remote path is already being synced.
-     *
-     * @param remotePath Remote file path
-     * @param accountId Account ID
-     * @return True if already in sync, false otherwise
-     */
-    suspend fun isAlreadySynced(remotePath: String, accountId: Long): Boolean {
-        return individualFileSyncRepository.isAlreadySynced(remotePath, accountId)
     }
 
     /**
@@ -310,6 +234,361 @@ class RemoteFileManagerController(
             "go" -> "text/x-go"
 
             else -> "application/octet-stream"
+        }
+    }
+
+    /**
+     * Download a remote file to a local sync folder.
+     * Creates a file entry in the database and triggers download.
+     *
+     * @param remotePath Remote file path
+     * @param accountId Account ID
+     * @param targetFolderId Target sync folder ID
+     * @return True if download initiated successfully
+     */
+    suspend fun downloadFileToSyncFolder(
+        remotePath: String,
+        accountId: Long,
+        targetFolderId: Long
+    ): Boolean {
+        return try {
+            // Validate path
+            if (PathValidator.validateRelativePath(remotePath) == null) {
+                SafeLogger.e("RemoteFileManagerController", "Invalid remote path: $remotePath")
+                return false
+            }
+
+            // Get target folder
+            val folder = folderRepository.getFolderById(targetFolderId)
+            if (folder == null) {
+                SafeLogger.e("RemoteFileManagerController", "Folder not found: $targetFolderId")
+                return false
+            }
+
+            // Extract filename
+            val fileName = remotePath.substringAfterLast('/')
+
+            // Get remote file metadata to get etag and size
+            val remoteFiles = webDavClient.listFiles(remotePath.substringBeforeLast('/'))
+            val remoteFile = remoteFiles.find { it.path == remotePath }
+
+            // Build local path and download
+            val success = if (folder.localPath.startsWith("content://")) {
+                // Handle content URI
+                downloadToContentUri(folder.localPath, fileName, remotePath, remoteFile)
+            } else {
+                // Handle file path
+                downloadToFilePath(folder.localPath, fileName, remotePath, remoteFile)
+            }
+
+            if (!success) {
+                SafeLogger.e("RemoteFileManagerController", "Download failed for: $remotePath")
+                return false
+            }
+
+            // Create FileEntity in database
+            val localPath = if (folder.localPath.endsWith("/")) {
+                "${folder.localPath}$fileName"
+            } else {
+                "${folder.localPath}/$fileName"
+            }
+
+            // Calculate local hash
+            val localHash = if (folder.localPath.startsWith("content://")) {
+                // For content URI, we'd need to calculate from stream
+                // For now, we'll leave it null and let sync update it
+                null
+            } else {
+                FileHashUtil.calculateHash(File(localPath))
+            }
+
+            val fileEntity = FileEntity(
+                folderId = targetFolderId,
+                localPath = localPath,
+                remotePath = remotePath,
+                fileName = fileName,
+                fileSize = remoteFile?.contentLength ?: 0L,
+                mimeType = getMimeTypeFromName(fileName),
+                localHash = localHash,
+                remoteHash = null,
+                localModified = System.currentTimeMillis(),
+                remoteModified = remoteFile?.modified?.time,
+                syncStatus = SyncStatus.SYNCED,
+                lastSync = System.currentTimeMillis(),
+                etag = remoteFile?.etag
+            )
+
+            fileRepository.insert(fileEntity)
+            SafeLogger.d("RemoteFileManagerController", "Downloaded and added to database: $fileName")
+
+            true
+        } catch (e: Exception) {
+            SafeLogger.e("RemoteFileManagerController", "Download failed", e)
+            false
+        }
+    }
+
+    private suspend fun downloadToFilePath(
+        folderPath: String,
+        fileName: String,
+        remotePath: String,
+        remoteFile: com.nextcloud.sync.models.network.DavResource?
+    ): Boolean {
+        return try {
+            val localPath = if (folderPath.endsWith("/")) {
+                "$folderPath$fileName"
+            } else {
+                "$folderPath/$fileName"
+            }
+            val localFile = File(localPath)
+
+            // Create parent directories if needed
+            localFile.parentFile?.mkdirs()
+
+            // Download file
+            webDavClient.downloadFile(remotePath, localFile)
+        } catch (e: Exception) {
+            SafeLogger.e("RemoteFileManagerController", "File path download failed", e)
+            false
+        }
+    }
+
+    private suspend fun downloadToContentUri(
+        folderUri: String,
+        fileName: String,
+        remotePath: String,
+        remoteFile: com.nextcloud.sync.models.network.DavResource?
+    ): Boolean {
+        return try {
+            val docHelper = DocumentFileHelper(context)
+            val rootDoc = docHelper.getDocumentFile(folderUri)
+            if (rootDoc == null) {
+                SafeLogger.e("RemoteFileManagerController", "Invalid folder URI: $folderUri")
+                return false
+            }
+
+            // Create file in folder
+            val mimeType = getMimeTypeFromName(fileName)
+            val newFile = docHelper.createFile(rootDoc, fileName, mimeType)
+            if (newFile == null) {
+                SafeLogger.e("RemoteFileManagerController", "Failed to create file: $fileName")
+                return false
+            }
+
+            // Download to the file
+            val inputStream = webDavClient.getFileStream(remotePath)
+            if (inputStream == null) {
+                SafeLogger.e("RemoteFileManagerController", "Failed to get file stream: $remotePath")
+                return false
+            }
+
+            inputStream.use { input ->
+                docHelper.openOutputStream(newFile.uri)?.use { output ->
+                    input.copyTo(output)
+                }
+            }
+
+            true
+        } catch (e: Exception) {
+            SafeLogger.e("RemoteFileManagerController", "Content URI download failed", e)
+            false
+        }
+    }
+
+    /**
+     * Delete a remote file from the server.
+     *
+     * @param remotePath Remote file path
+     * @return True if successful
+     */
+    suspend fun deleteRemoteFile(remotePath: String): Boolean {
+        return try {
+            // Validate path
+            if (PathValidator.validateRelativePath(remotePath) == null) {
+                SafeLogger.e("RemoteFileManagerController", "Invalid remote path: $remotePath")
+                return false
+            }
+
+            // Delete file
+            val success = webDavClient.deleteFile(remotePath)
+
+            if (success) {
+                // Invalidate cache for parent directory
+                invalidateCacheForPath(remotePath)
+                SafeLogger.d("RemoteFileManagerController", "Deleted remote file: $remotePath")
+            }
+
+            success
+        } catch (e: Exception) {
+            SafeLogger.e("RemoteFileManagerController", "Delete failed", e)
+            false
+        }
+    }
+
+    /**
+     * Rename a remote file on the server.
+     *
+     * @param oldPath Current remote path
+     * @param newName New filename (not full path)
+     * @return True if successful
+     */
+    suspend fun renameRemoteFile(oldPath: String, newName: String): Boolean {
+        return try {
+            // Validate paths
+            if (PathValidator.validateRelativePath(oldPath) == null) {
+                SafeLogger.e("RemoteFileManagerController", "Invalid old path: $oldPath")
+                return false
+            }
+
+            // Validate new name (no slashes, not empty)
+            if (newName.isEmpty() || newName.contains("/") || newName.contains("\\")) {
+                SafeLogger.e("RemoteFileManagerController", "Invalid new name: $newName")
+                return false
+            }
+
+            // Build new path
+            val parentPath = oldPath.substringBeforeLast('/')
+            val newPath = if (parentPath.isEmpty()) {
+                "/$newName"
+            } else {
+                "$parentPath/$newName"
+            }
+
+            // Rename file
+            val success = webDavClient.renameFile(oldPath, newPath)
+
+            if (success) {
+                // Invalidate cache for parent directory
+                invalidateCacheForPath(oldPath)
+                SafeLogger.d("RemoteFileManagerController", "Renamed: $oldPath -> $newPath")
+            }
+
+            success
+        } catch (e: Exception) {
+            SafeLogger.e("RemoteFileManagerController", "Rename failed", e)
+            false
+        }
+    }
+
+    /**
+     * Move a remote file to a different directory.
+     *
+     * @param sourcePath Source remote path
+     * @param destinationPath Destination remote directory path
+     * @return True if successful
+     */
+    suspend fun moveRemoteFile(sourcePath: String, destinationPath: String): Boolean {
+        return try {
+            // Validate paths
+            if (PathValidator.validateRelativePath(sourcePath) == null) {
+                SafeLogger.e("RemoteFileManagerController", "Invalid source path: $sourcePath")
+                return false
+            }
+            if (PathValidator.validateRelativePath(destinationPath) == null) {
+                SafeLogger.e("RemoteFileManagerController", "Invalid destination path: $destinationPath")
+                return false
+            }
+
+            // Extract filename
+            val fileName = sourcePath.substringAfterLast('/')
+
+            // Build full destination path
+            val fullDestPath = if (destinationPath.endsWith("/")) {
+                "$destinationPath$fileName"
+            } else {
+                "$destinationPath/$fileName"
+            }
+
+            // Move file
+            val success = webDavClient.moveFile(sourcePath, fullDestPath)
+
+            if (success) {
+                // Invalidate cache for both source and destination directories
+                invalidateCacheForPath(sourcePath)
+                invalidateCacheForPath(fullDestPath)
+                SafeLogger.d("RemoteFileManagerController", "Moved: $sourcePath -> $fullDestPath")
+            }
+
+            success
+        } catch (e: Exception) {
+            SafeLogger.e("RemoteFileManagerController", "Move failed", e)
+            false
+        }
+    }
+
+    /**
+     * Copy a remote file to a different location.
+     *
+     * @param sourcePath Source remote path
+     * @param destinationPath Destination remote directory path
+     * @return True if successful
+     */
+    suspend fun copyRemoteFile(sourcePath: String, destinationPath: String): Boolean {
+        return try {
+            // Validate paths
+            if (PathValidator.validateRelativePath(sourcePath) == null) {
+                SafeLogger.e("RemoteFileManagerController", "Invalid source path: $sourcePath")
+                return false
+            }
+            if (PathValidator.validateRelativePath(destinationPath) == null) {
+                SafeLogger.e("RemoteFileManagerController", "Invalid destination path: $destinationPath")
+                return false
+            }
+
+            // Extract filename
+            val fileName = sourcePath.substringAfterLast('/')
+
+            // Build full destination path
+            val fullDestPath = if (destinationPath.endsWith("/")) {
+                "$destinationPath$fileName"
+            } else {
+                "$destinationPath/$fileName"
+            }
+
+            // Copy file
+            val success = webDavClient.copyFile(sourcePath, fullDestPath)
+
+            if (success) {
+                // Invalidate cache for destination directory
+                invalidateCacheForPath(fullDestPath)
+                SafeLogger.d("RemoteFileManagerController", "Copied: $sourcePath -> $fullDestPath")
+            }
+
+            success
+        } catch (e: Exception) {
+            SafeLogger.e("RemoteFileManagerController", "Copy failed", e)
+            false
+        }
+    }
+
+    /**
+     * Get available sync folders for download destination picker.
+     *
+     * @param accountId Account ID
+     * @return List of folder entities
+     */
+    suspend fun getAvailableSyncFolders(accountId: Long): List<FolderEntity> {
+        return try {
+            folderRepository.getFoldersByAccount(accountId)
+        } catch (e: Exception) {
+            SafeLogger.e("RemoteFileManagerController", "Failed to get folders", e)
+            emptyList()
+        }
+    }
+
+    /**
+     * Invalidate cache for a path and its parent directory.
+     *
+     * @param path Path to invalidate cache for
+     */
+    private suspend fun invalidateCacheForPath(path: String) {
+        try {
+            // Invalidate the parent directory cache
+            val parentPath = path.substringBeforeLast('/', "/")
+            RemoteFileCache.invalidate(parentPath)
+            SafeLogger.d("RemoteFileManagerController", "Invalidated cache for: $parentPath")
+        } catch (e: Exception) {
+            SafeLogger.e("RemoteFileManagerController", "Cache invalidation failed", e)
         }
     }
 }
